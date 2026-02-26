@@ -1,10 +1,10 @@
-# Pay SDK (TypeScript)
+# Pay SDK (JS & TS)
 
 [![npm version](https://img.shields.io/npm/v/@agent-tech/pay.svg)](https://www.npmjs.com/package/@agent-tech/pay)
 [![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org)
 
-TypeScript client for the Agent Tech payment API — create intents, execute USDC transfers on Base, and query status.
+Javascript & TypeScript client for the Agent Tech payment API — create intents, execute USDC transfers on Base, and query status.
 
 - **Zero runtime dependencies** — uses the built-in `fetch` API (Node 18+)
 - **Dual ESM + CommonJS** — works in TypeScript and JavaScript projects
