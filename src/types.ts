@@ -50,7 +50,7 @@ export interface IntentBase {
   receivingAmount: string;
   estimatedFee: string;
   feeBreakdown: FeeBreakdown;
-  status: string;
+  status: IntentStatusValue;
   createdAt: string;
   expiresAt: string;
 }

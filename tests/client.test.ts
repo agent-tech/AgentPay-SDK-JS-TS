@@ -230,7 +230,11 @@ describe("createIntent", () => {
     const client = bearerClient(f);
 
     try {
-      await client.createIntent({ amount: "0", payerChain: "solana" });
+      await client.createIntent({
+        email: "a@b.com",
+        amount: "0",
+        payerChain: "solana",
+      });
       expect.fail("should have thrown");
     } catch (err) {
       expect(err).toBeInstanceOf(PayApiError);
@@ -238,6 +242,50 @@ describe("createIntent", () => {
       expect(apiErr.statusCode).toBe(400);
       expect(apiErr.message).toContain("invalid amount");
     }
+  });
+
+  it("throws PayValidationError when both email and recipient are set", async () => {
+    const client = bearerClient(mockFetch(201, {}));
+    await expect(
+      client.createIntent({
+        email: "a@b.com",
+        recipient: "0xabc",
+        amount: "10.00",
+        payerChain: "solana",
+      }),
+    ).rejects.toThrow(PayValidationError);
+  });
+
+  it("throws PayValidationError when neither email nor recipient is set", async () => {
+    const client = bearerClient(mockFetch(201, {}));
+    await expect(
+      client.createIntent({
+        amount: "10.00",
+        payerChain: "solana",
+      }),
+    ).rejects.toThrow(PayValidationError);
+  });
+
+  it("throws PayValidationError when amount is empty", async () => {
+    const client = bearerClient(mockFetch(201, {}));
+    await expect(
+      client.createIntent({
+        email: "a@b.com",
+        amount: "",
+        payerChain: "solana",
+      }),
+    ).rejects.toThrow(PayValidationError);
+  });
+
+  it("throws PayValidationError when payerChain is empty", async () => {
+    const client = bearerClient(mockFetch(201, {}));
+    await expect(
+      client.createIntent({
+        email: "a@b.com",
+        amount: "10.00",
+        payerChain: "",
+      }),
+    ).rejects.toThrow(PayValidationError);
   });
 });
 
@@ -403,5 +451,103 @@ describe("request serialization", () => {
       amount: "10.00",
       payer_chain: "solana",
     });
+  });
+});
+
+// ── Constructor: unknown auth type ──────────────────────────────────────
+
+describe("unknown auth type", () => {
+  it("throws PayValidationError for unrecognised auth type", () => {
+    expect(
+      () =>
+        new PayClient({
+          baseUrl: "http://localhost",
+          auth: { type: "magic" } as any,
+        }),
+    ).toThrow(PayValidationError);
+  });
+});
+
+// ── Prototype pollution protection ──────────────────────────────────────
+
+describe("key conversion safety", () => {
+  it("strips __proto__ keys to prevent prototype pollution", () => {
+    const malicious = JSON.parse(
+      '{"__proto__":{"polluted":true},"safe_key":"ok"}',
+    );
+    const result = keysToCamel(malicious) as any;
+    expect(result.safeKey).toBe("ok");
+    expect(result.polluted).toBeUndefined();
+    // Verify the global Object prototype is not polluted
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it("handles consecutive uppercase in camelToSnake", () => {
+    const input = { xmlParser: "v", getHTTPSUrl: "u" };
+    const snake = keysToSnake(input) as any;
+    expect(snake.xml_parser).toBe("v");
+    expect(snake.get_https_url).toBe("u");
+  });
+});
+
+// ── parseError edge cases ───────────────────────────────────────────────
+
+describe("parseError edge cases", () => {
+  it("falls back to HTTP status code when statusText is empty", async () => {
+    const customFetch: typeof globalThis.fetch = async () => {
+      return new Response("not json", { status: 502, statusText: "" });
+    };
+
+    const client = bearerClient(customFetch);
+
+    try {
+      await client.getIntent("id");
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PayApiError);
+      expect((err as PayApiError).message).toContain("HTTP 502");
+    }
+  });
+
+  it("ignores non-object JSON response body", async () => {
+    const customFetch: typeof globalThis.fetch = async () => {
+      return new Response(JSON.stringify([1, 2, 3]), {
+        status: 400,
+        statusText: "Bad Request",
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const client = bearerClient(customFetch);
+
+    try {
+      await client.getIntent("id");
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PayApiError);
+      expect((err as PayApiError).message).toContain("Bad Request");
+    }
+  });
+});
+
+// ── URL encoding for special characters ─────────────────────────────────
+
+describe("URL encoding", () => {
+  it("encodes special characters in intentId for executeIntent", async () => {
+    const f = mockFetch(200, { intent_id: "a/b", status: "PENDING" }, (url) => {
+      expect(url).toBe("http://localhost/v2/intents/a%2Fb/execute");
+    });
+
+    const client = bearerClient(f);
+    await client.executeIntent("a/b");
+  });
+
+  it("encodes special characters in intentId for getIntent", async () => {
+    const f = mockFetch(200, { intent_id: "a&b", status: "PENDING" }, (url) => {
+      expect(url).toBe("http://localhost/v2/intents?intent_id=a%26b");
+    });
+
+    const client = bearerClient(f);
+    await client.getIntent("a&b");
   });
 });

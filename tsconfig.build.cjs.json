@@ -5,7 +5,7 @@
     "moduleResolution": "Node",
     "rootDir": "src",
     "outDir": "dist/cjs",
-    "declaration": false,
+    "declaration": true,
     "declarationMap": false,
     "sourceMap": true
   },

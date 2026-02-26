@@ -9,6 +9,7 @@ import type {
 
 const V2_PATH_PREFIX = "/v2";
 const DEFAULT_TIMEOUT_MS = 30_000;
+const MAX_KEY_CONVERSION_DEPTH = 50;
 
 // ── Auth types ──────────────────────────────────────────────────────────
 
@@ -42,32 +43,32 @@ export interface PayClientOptions {
 // ── Key conversion helpers ──────────────────────────────────────────────
 
 function camelToSnake(key: string): string {
-  return key.replace(/[A-Z]/g, (ch) => "_" + ch.toLowerCase());
+  return key
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase();
 }
 
 function snakeToCamel(key: string): string {
   return key.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
 }
 
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
 function convertKeys(
   obj: unknown,
   convert: (key: string) => string,
+  depth = 0,
 ): unknown {
+  if (depth > MAX_KEY_CONVERSION_DEPTH) {
+    throw new PayValidationError("response nesting exceeds maximum depth");
+  }
   if (Array.isArray(obj)) {
-    return obj.map((item) => convertKeys(item, convert));
+    return obj.map((item) => convertKeys(item, convert, depth + 1));
   }
   if (obj !== null && typeof obj === "object") {
-    const result: Record<string, unknown> = {};
+    const result: Record<string, unknown> = Object.create(null);
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      result[convert(key)] = convertKeys(value, convert);
+      if (key === "__proto__") continue;
+      result[convert(key)] = convertKeys(value, convert, depth + 1);
     }
     return result;
   }
@@ -109,7 +110,11 @@ export class PayClient {
           "clientId and clientSecret must not be empty",
         );
       }
-      const token = btoa(`${auth.clientId}:${auth.clientSecret}`);
+      // NOTE: The upstream API expects base64-encoded credentials in a Bearer
+      // header. This is intentional and not standard HTTP Basic auth.
+      const token = Buffer.from(
+        `${auth.clientId}:${auth.clientSecret}`,
+      ).toString("base64");
       this.authHeaders = { Authorization: `Bearer ${token}` };
     } else if (auth.type === "apiKey") {
       if (!auth.clientId || !auth.apiKey) {
@@ -151,15 +156,25 @@ export class PayClient {
     // Timeout handling: use AbortController when no custom fetch is provided.
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let fetchSignal = signal;
+    let onAbort: (() => void) | undefined;
 
     if (!this.hasCustomFetch) {
       const controller = new AbortController();
       if (signal) {
-        signal.addEventListener("abort", () => controller.abort(signal.reason), {
-          once: true,
-        });
+        if (signal.aborted) {
+          controller.abort(signal.reason);
+        } else {
+          onAbort = () => controller.abort(signal.reason);
+          signal.addEventListener("abort", onAbort, { once: true });
+        }
       }
-      timeoutId = setTimeout(() => controller.abort("timeout"), this.timeoutMs);
+      timeoutId = setTimeout(
+        () =>
+          controller.abort(
+            new Error(`request timed out after ${this.timeoutMs}ms`),
+          ),
+        this.timeoutMs,
+      );
       fetchSignal = controller.signal;
     }
 
@@ -174,19 +189,25 @@ export class PayClient {
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId);
       }
+      if (onAbort && signal) {
+        signal.removeEventListener("abort", onAbort);
+      }
     }
   }
 
   private async parseError(resp: Response): Promise<PayApiError> {
     let msg: string | undefined;
     try {
-      const body = (await resp.json()) as Partial<ErrorResponse>;
-      msg = body.message || body.error;
+      const raw = await resp.json();
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const body = raw as Partial<ErrorResponse>;
+        msg = body.message || body.error;
+      }
     } catch {
       // ignore JSON parse failures
     }
     if (!msg) {
-      msg = resp.statusText;
+      msg = resp.statusText || `HTTP ${resp.status}`;
     }
     return new PayApiError(resp.status, msg);
   }
@@ -203,6 +224,19 @@ export class PayClient {
   ): Promise<CreateIntentResponse> {
     if (!request) {
       throw new PayValidationError("CreateIntentRequest is required");
+    }
+    const hasEmail = !!request.email;
+    const hasRecipient = !!request.recipient;
+    if (hasEmail === hasRecipient) {
+      throw new PayValidationError(
+        "exactly one of 'email' or 'recipient' must be provided",
+      );
+    }
+    if (!request.amount) {
+      throw new PayValidationError("'amount' is required");
+    }
+    if (!request.payerChain) {
+      throw new PayValidationError("'payerChain' is required");
     }
     const resp = await this.do("POST", "/intents", request, signal);
     if (resp.status !== 201) {
