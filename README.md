@@ -1,16 +1,20 @@
 # Pay SDK (TypeScript)
 
-TypeScript client for the Agent Tech v2 payment API — create intents, execute USDC transfers on Base, and query status. No wallet or signing on your side.
+TypeScript client for the Agent Tech payment API — create intents, execute USDC transfers on Base, and query status.
 
 - **Zero runtime dependencies** — uses the built-in `fetch` API (Node 18+)
 - **Dual ESM + CommonJS** — works in TypeScript and JavaScript projects
-- **Two auth modes** — Bearer token or header-based API key
-- **All payments settle on Base** chain via the backend Agent wallet
+- **Two clients** — `PayClient` (authenticated, server-side) and `PublicPayClient` (unauthenticated, payer-side)
+- **Two auth modes** for PayClient — Bearer token or header-based API key
+- **All payments settle on Base** chain
 
 ## Table of Contents
 
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [Clients](#clients)
+  - [PayClient (Authenticated)](#payclient-authenticated)
+  - [PublicPayClient (Unauthenticated)](#publicpayclient-unauthenticated)
 - [Authentication](#authentication)
 - [API Methods](#api-methods)
 - [Intent Lifecycle](#intent-lifecycle)
@@ -22,7 +26,7 @@ TypeScript client for the Agent Tech v2 payment API — create intents, execute 
 ## Install
 
 ```bash
-npm install @anthropic/pay
+npm install @agent-tech/pay
 ```
 
 ## Quick Start
@@ -30,7 +34,7 @@ npm install @anthropic/pay
 ### TypeScript (ESM)
 
 ```ts
-import { PayClient, IntentStatus } from "@anthropic/pay";
+import { PayClient, IntentStatus } from "@agent-tech/pay";
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech/api",
@@ -54,30 +58,10 @@ const intent = await client.getIntent(resp.intentId);
 console.log("Final status:", intent.status);
 ```
 
-### JavaScript (ESM)
-
-Same imports — your editor still picks up type hints from the bundled `.d.ts` files:
-
-```js
-import { PayClient, IntentStatus } from "@anthropic/pay";
-
-const client = new PayClient({
-  baseUrl: "https://api-pay.agent.tech/api",
-  auth: { type: "bearer", clientId: "your-client-id", clientSecret: "your-client-secret" },
-});
-
-const resp = await client.createIntent({
-  email: "merchant@example.com",
-  amount: "100.50",
-  payerChain: "solana",
-});
-console.log("Intent ID:", resp.intentId);
-```
-
 ### JavaScript (CommonJS)
 
 ```js
-const { PayClient, IntentStatus } = require("@anthropic/pay");
+const { PayClient } = require("@agent-tech/pay");
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech/api",
@@ -110,7 +94,59 @@ npx tsx examples/basic.ts
 
 Set `PAY_INTENT_ID` to skip creation and query an existing intent instead.
 
+## Clients
+
+The SDK provides two client classes for different use cases.
+
+### PayClient (Authenticated)
+
+Server-side client that uses `/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
+
+```ts
+import { PayClient } from "@agent-tech/pay";
+
+const client = new PayClient({
+  baseUrl: "https://api-pay.agent.tech/api",
+  auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
+});
+
+const intent = await client.createIntent({ email: "merchant@example.com", amount: "10.00", payerChain: "solana" });
+const exec   = await client.executeIntent(intent.intentId);
+const status = await client.getIntent(intent.intentId);
+```
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `createIntent(req)` | `POST /v2/intents` | Create a payment intent |
+| `executeIntent(id)` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
+| `getIntent(id)` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
+
+### PublicPayClient (Unauthenticated)
+
+Client-side / payer-side client that uses `/api` endpoints without authentication. Use this when the integrator holds the payer's wallet and can sign X402 payments and submit settle proofs directly.
+
+```ts
+import { PublicPayClient } from "@agent-tech/pay";
+
+const client = new PublicPayClient({
+  baseUrl: "https://api-pay.agent.tech/api",
+});
+
+const intent = await client.createIntent({ recipient: "0x...", amount: "10.00", payerChain: "base" });
+// ... payer signs X402 payment off-chain ...
+const result = await client.submitProof(intent.intentId, "settle_proof_string");
+const status = await client.getIntent(intent.intentId);
+```
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `createIntent(req)` | `POST /api/intents` | Create a payment intent |
+| `submitProof(id, proof)` | `POST /api/intents/{id}` | Submit settle proof after X402 payment |
+| `getIntent(id)` | `GET /api/intents?intent_id=...` | Get intent status and receipt |
+
 ## Authentication
+
+Authentication applies to `PayClient` only. `PublicPayClient` requires no credentials.
 
 ### Bearer token (recommended)
 
@@ -136,7 +172,7 @@ const client = new PayClient({
 
 ### Custom fetch / timeout
 
-The default timeout is **30 seconds**. Override with options:
+The default timeout is **30 seconds** for both clients. Override with options:
 
 ```ts
 const client = new PayClient({
@@ -144,6 +180,9 @@ const client = new PayClient({
   auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
   timeoutMs: 60_000,
 });
+
+// PublicPayClient supports the same options (minus auth)
+const publicClient = new PublicPayClient({ baseUrl, timeoutMs: 60_000 });
 ```
 
 Or provide a custom `fetch` implementation (timeout is ignored when custom fetch is provided):
@@ -158,13 +197,25 @@ const client = new PayClient({
 
 ## API Methods
 
+### PayClient
+
 | Method | Endpoint | Description |
 |---|---|---|
 | `createIntent` | `POST /v2/intents` | Create a payment intent |
 | `executeIntent` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
 | `getIntent` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
 
+### PublicPayClient
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `createIntent` | `POST /api/intents` | Create a payment intent |
+| `submitProof` | `POST /api/intents/{id}` | Submit settle proof after X402 payment |
+| `getIntent` | `GET /api/intents?intent_id=...` | Get intent status and receipt |
+
 ### createIntent
+
+Available on both clients. Exactly one of `email` or `recipient` must be provided.
 
 ```ts
 const resp = await client.createIntent({
@@ -183,7 +234,7 @@ const resp = await client.createIntent({
 | `amount` | `amount` | Yes | USDC amount as string (e.g. `"100.50"`) |
 | `payerChain` | `payer_chain` | Yes | Source chain: `solana`, `base`, or `bsc` |
 
-### executeIntent
+### executeIntent (PayClient only)
 
 No request body — the backend uses the Agent wallet to sign and transfer USDC on Base.
 
@@ -192,7 +243,18 @@ const exec = await client.executeIntent(resp.intentId);
 // exec.status is typically "BASE_SETTLED"
 ```
 
+### submitProof (PublicPayClient only)
+
+Submit a settle proof after the payer has completed an X402 payment off-chain.
+
+```ts
+const result = await publicClient.submitProof(intentId, "settle_proof_string");
+console.log(result.status);
+```
+
 ### getIntent (query status)
+
+Available on both clients.
 
 ```ts
 const intent = await client.getIntent(intentId);
@@ -289,7 +351,7 @@ The SDK uses two error classes:
 **`PayApiError`** — thrown for non-2xx HTTP responses from the API:
 
 ```ts
-import { PayApiError } from "@anthropic/pay";
+import { PayApiError } from "@agent-tech/pay";
 
 try {
   await client.createIntent(req);
@@ -303,7 +365,7 @@ try {
 **`PayValidationError`** — thrown when the SDK rejects a request before it reaches the API (e.g. missing request, empty intent ID):
 
 ```ts
-import { PayValidationError } from "@anthropic/pay";
+import { PayValidationError } from "@agent-tech/pay";
 
 try {
   await client.executeIntent("");

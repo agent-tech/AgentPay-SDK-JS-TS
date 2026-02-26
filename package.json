@@ -1,5 +1,5 @@
 {
-  "name": "@anthropic/pay",
+  "name": "@agent-tech/pay",
   "version": "0.1.0",
   "description": "TypeScript client for the Agent Tech v2 payment API",
   "type": "module",
