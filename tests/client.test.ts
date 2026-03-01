@@ -9,10 +9,6 @@ import {
   keysToCamel,
 } from "../src/index.js";
 import type {
-  CreateIntentResponse,
-  ExecuteIntentResponse,
-  SubmitProofResponse,
-  GetIntentResponse,
   Fetcher,
   FetchRequest,
 } from "../src/index.js";
@@ -391,7 +387,7 @@ describe("parseError", () => {
   });
 });
 
-// ── Key conversion ──────────────────────────────────────────────────────
+// ── Key conversion ─────────────────────────────────────────────────────
 
 describe("key conversion", () => {
   it("round-trips camelCase ↔ snake_case", () => {
@@ -428,6 +424,27 @@ describe("key conversion", () => {
     expect(keysToSnake("hello")).toBe("hello");
     expect(keysToSnake(42)).toBe(42);
     expect(keysToSnake(null)).toBe(null);
+  });
+});
+
+// ── Key conversion safety ──────────────────────────────────────────────
+
+describe("key conversion safety", () => {
+  it("strips __proto__ keys to prevent prototype pollution", () => {
+    const malicious = JSON.parse(
+      '{"__proto__":{"polluted":true},"safe_key":"ok"}',
+    );
+    const result = keysToCamel(malicious) as Record<string, unknown>;
+    expect(result.safeKey).toBe("ok");
+    expect(result.polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it("handles consecutive uppercase in camelToSnake", () => {
+    const input = { xmlParser: "v", getHTTPSUrl: "u" };
+    const snake = keysToSnake(input) as Record<string, string>;
+    expect(snake.xml_parser).toBe("v");
+    expect(snake.get_https_url).toBe("u");
   });
 });
 
@@ -469,28 +486,6 @@ describe("unknown auth type", () => {
           auth: { type: "magic" } as any,
         }),
     ).toThrow(PayValidationError);
-  });
-});
-
-// ── Prototype pollution protection ──────────────────────────────────────
-
-describe("key conversion safety", () => {
-  it("strips __proto__ keys to prevent prototype pollution", () => {
-    const malicious = JSON.parse(
-      '{"__proto__":{"polluted":true},"safe_key":"ok"}',
-    );
-    const result = keysToCamel(malicious) as any;
-    expect(result.safeKey).toBe("ok");
-    expect(result.polluted).toBeUndefined();
-    // Verify the global Object prototype is not polluted
-    expect(({} as any).polluted).toBeUndefined();
-  });
-
-  it("handles consecutive uppercase in camelToSnake", () => {
-    const input = { xmlParser: "v", getHTTPSUrl: "u" };
-    const snake = keysToSnake(input) as any;
-    expect(snake.xml_parser).toBe("v");
-    expect(snake.get_https_url).toBe("u");
   });
 });
 

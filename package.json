@@ -38,5 +38,9 @@
     "@types/node": "^25.3.1",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "camelcase-keys": "^10.0.2",
+    "decamelize-keys": "^2.0.1"
   }
 }

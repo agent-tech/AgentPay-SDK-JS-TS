@@ -1,3 +1,5 @@
+import camelcaseKeys from "camelcase-keys";
+import decamelizeKeys from "decamelize-keys";
 import { PayApiError, PayValidationError } from "./errors.js";
 import type {
   CreateIntentRequest,
@@ -11,7 +13,6 @@ import type {
 const V2_PATH_PREFIX = "/v2";
 const API_PATH_PREFIX = "/api";
 const DEFAULT_TIMEOUT_MS = 30_000;
-const MAX_KEY_CONVERSION_DEPTH = 50;
 
 // ── Auth types ──────────────────────────────────────────────────────────
 
@@ -63,45 +64,18 @@ export interface PayClientOptions {
 
 // ── Key conversion helpers ──────────────────────────────────────────────
 
-function camelToSnake(key: string): string {
-  return key
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .toLowerCase();
-}
-
-function snakeToCamel(key: string): string {
-  return key.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
-}
-
-function convertKeys(
-  obj: unknown,
-  convert: (key: string) => string,
-  depth = 0,
-): unknown {
-  if (depth > MAX_KEY_CONVERSION_DEPTH) {
-    throw new PayValidationError("response nesting exceeds maximum depth");
-  }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => convertKeys(item, convert, depth + 1));
-  }
-  if (obj !== null && typeof obj === "object") {
-    const result: Record<string, unknown> = Object.create(null);
-    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      if (key === "__proto__") continue;
-      result[convert(key)] = convertKeys(value, convert, depth + 1);
-    }
-    return result;
-  }
-  return obj;
-}
-
 export function keysToSnake(obj: unknown): unknown {
-  return convertKeys(obj, camelToSnake);
+  if (obj === null || typeof obj !== "object") return obj;
+  return decamelizeKeys(obj as Record<string, unknown> | unknown[], {
+    deep: true,
+  });
 }
 
 export function keysToCamel(obj: unknown): unknown {
-  return convertKeys(obj, snakeToCamel);
+  if (obj === null || typeof obj !== "object") return obj;
+  return camelcaseKeys(obj as Record<string, unknown> | unknown[], {
+    deep: true,
+  });
 }
 
 // ── Fetch adapter ─────────────────────────────────────────────────────────
