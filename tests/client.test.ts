@@ -13,23 +13,25 @@ import type {
   ExecuteIntentResponse,
   SubmitProofResponse,
   GetIntentResponse,
+  Fetcher,
+  FetchRequest,
 } from "../src/index.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-/** Build a mock fetch that returns a fixed response. */
-function mockFetch(
+/** Build a mock fetcher that returns a fixed response. */
+function mockFetcher(
   status: number,
   body: unknown,
-  check?: (url: string, init: RequestInit) => void,
-): typeof globalThis.fetch {
-  return async (input, init) => {
-    if (check) check(input as string, init!);
+  check?: (req: FetchRequest) => void,
+): Fetcher {
+  return async (req) => {
+    if (check) check(req);
     return new Response(JSON.stringify(body), {
       status,
       statusText: statusText(status),
       headers: { "Content-Type": "application/json" },
-    });
+    }) as unknown as Awaited<ReturnType<Fetcher>>;
   };
 }
 
@@ -45,13 +47,11 @@ function statusText(code: number): string {
   return map[code] ?? "";
 }
 
-function bearerClient(
-  fetchFn: typeof globalThis.fetch,
-): PayClient {
+function bearerClient(fetcher: Fetcher): PayClient {
   return new PayClient({
     baseUrl: "http://localhost",
     auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
-    fetch: fetchFn,
+    fetcher,
   });
 }
 
@@ -115,11 +115,11 @@ describe("PayClient constructor", () => {
   });
 
   it("strips trailing slash from baseUrl", () => {
-    const f = mockFetch(200, { intent_id: "x", status: "BASE_SETTLED" });
+    const f = mockFetcher(200, { intent_id: "x", status: "BASE_SETTLED" });
     const client = new PayClient({
       baseUrl: "http://localhost/",
       auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
-      fetch: f,
+      fetcher: f,
     });
     // Verify by making a request and checking the URL
     expect(
@@ -136,29 +136,31 @@ describe("PayClient constructor", () => {
 
 describe("options", () => {
   it("uses provided timeoutMs", async () => {
-    // With a custom fetch, timeout is ignored — so we just verify construction
+    // With a custom fetcher, timeout is ignored — so we just verify construction
     const client = new PayClient({
       baseUrl: "http://localhost",
       auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
       timeoutMs: 5000,
-      fetch: mockFetch(200, { intent_id: "x" }),
+      fetcher: mockFetcher(200, { intent_id: "x" }),
     });
     expect(client).toBeInstanceOf(PayClient);
   });
 
-  it("custom fetch ignores timeout", async () => {
-    // Custom fetch should be used as-is
+  it("custom fetcher ignores timeout", async () => {
+    // Custom fetcher should be used as-is
     let called = false;
-    const customFetch: typeof globalThis.fetch = async (input, init) => {
+    const customFetcher: Fetcher = async () => {
       called = true;
-      return new Response(JSON.stringify({ intent_id: "x" }), { status: 200 });
+      return new Response(JSON.stringify({ intent_id: "x" }), {
+        status: 200,
+      }) as unknown as Awaited<ReturnType<Fetcher>>;
     };
 
     const client = new PayClient({
       baseUrl: "http://localhost",
       auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
-      timeoutMs: 1, // tiny timeout, should be ignored with custom fetch
-      fetch: customFetch,
+      timeoutMs: 1, // tiny timeout, should be ignored with custom fetcher
+      fetcher: customFetcher,
     });
 
     await client.getIntent("x");
@@ -202,11 +204,11 @@ describe("createIntent", () => {
       status: IntentStatus.AwaitingPayment,
     };
 
-    const f = mockFetch(201, responseBody, (url, init) => {
-      expect(url).toBe("http://localhost/v2/intents");
-      expect(init.method).toBe("POST");
-      expect(init.headers).toHaveProperty("Content-Type", "application/json");
-      expect(init.headers).toHaveProperty("Authorization");
+    const f = mockFetcher(201, responseBody, (req) => {
+      expect(req.url).toBe("http://localhost/v2/intents");
+      expect(req.method).toBe("POST");
+      expect(req.headers).toHaveProperty("Content-Type", "application/json");
+      expect(req.headers).toHaveProperty("Authorization");
     });
 
     const client = bearerClient(f);
@@ -221,14 +223,14 @@ describe("createIntent", () => {
   });
 
   it("throws PayValidationError for null request", async () => {
-    const client = bearerClient(mockFetch(201, {}));
+    const client = bearerClient(mockFetcher(201, {}));
     await expect(client.createIntent(null as any)).rejects.toThrow(
       PayValidationError,
     );
   });
 
   it("throws PayApiError on non-201 response", async () => {
-    const f = mockFetch(400, { message: "invalid amount" });
+    const f = mockFetcher(400, { message: "invalid amount" });
     const client = bearerClient(f);
 
     try {
@@ -247,7 +249,7 @@ describe("createIntent", () => {
   });
 
   it("throws PayValidationError when both email and recipient are set", async () => {
-    const client = bearerClient(mockFetch(201, {}));
+    const client = bearerClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -259,7 +261,7 @@ describe("createIntent", () => {
   });
 
   it("throws PayValidationError when neither email nor recipient is set", async () => {
-    const client = bearerClient(mockFetch(201, {}));
+    const client = bearerClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         amount: "10.00",
@@ -269,7 +271,7 @@ describe("createIntent", () => {
   });
 
   it("throws PayValidationError when amount is empty", async () => {
-    const client = bearerClient(mockFetch(201, {}));
+    const client = bearerClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -280,7 +282,7 @@ describe("createIntent", () => {
   });
 
   it("throws PayValidationError when payerChain is empty", async () => {
-    const client = bearerClient(mockFetch(201, {}));
+    const client = bearerClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -293,11 +295,11 @@ describe("createIntent", () => {
 
 describe("executeIntent", () => {
   it("sends POST /v2/intents/{id}/execute and returns 200", async () => {
-    const f = mockFetch(
+    const f = mockFetcher(
       200,
       { intent_id: "abc-123", status: IntentStatus.BaseSettled },
-      (url) => {
-        expect(url).toBe("http://localhost/v2/intents/abc-123/execute");
+      (req) => {
+        expect(req.url).toBe("http://localhost/v2/intents/abc-123/execute");
       },
     );
 
@@ -307,7 +309,7 @@ describe("executeIntent", () => {
   });
 
   it("throws PayValidationError for empty intentId", async () => {
-    const client = bearerClient(mockFetch(200, {}));
+    const client = bearerClient(mockFetcher(200, {}));
     await expect(client.executeIntent("")).rejects.toThrow(
       PayValidationError,
     );
@@ -316,11 +318,11 @@ describe("executeIntent", () => {
 
 describe("getIntent", () => {
   it("sends GET /v2/intents?intent_id=... and returns 200", async () => {
-    const f = mockFetch(
+    const f = mockFetcher(
       200,
       { intent_id: "xyz", status: IntentStatus.BaseSettled },
-      (url) => {
-        expect(url).toBe("http://localhost/v2/intents?intent_id=xyz");
+      (req) => {
+        expect(req.url).toBe("http://localhost/v2/intents?intent_id=xyz");
       },
     );
 
@@ -330,7 +332,7 @@ describe("getIntent", () => {
   });
 
   it("throws PayValidationError for empty intentId", async () => {
-    const client = bearerClient(mockFetch(200, {}));
+    const client = bearerClient(mockFetcher(200, {}));
     await expect(client.getIntent("")).rejects.toThrow(PayValidationError);
   });
 });
@@ -339,16 +341,15 @@ describe("getIntent", () => {
 
 describe("API key auth", () => {
   it("sends X-Client-ID and X-API-Key headers", async () => {
-    const f = mockFetch(200, {}, (url, init) => {
-      const headers = init.headers as Record<string, string>;
-      expect(headers["X-Client-ID"]).toBe("myid");
-      expect(headers["X-API-Key"]).toBe("mykey");
+    const f = mockFetcher(200, {}, (req) => {
+      expect(req.headers["X-Client-ID"]).toBe("myid");
+      expect(req.headers["X-API-Key"]).toBe("mykey");
     });
 
     const client = new PayClient({
       baseUrl: "http://localhost",
       auth: { type: "apiKey", clientId: "myid", apiKey: "mykey" },
-      fetch: f,
+      fetcher: f,
     });
 
     await client.getIntent("test-id");
@@ -359,7 +360,7 @@ describe("API key auth", () => {
 
 describe("parseError", () => {
   it("falls back to error field when message is empty", async () => {
-    const f = mockFetch(403, { error: "forbidden" });
+    const f = mockFetcher(403, { error: "forbidden" });
     const client = bearerClient(f);
 
     try {
@@ -372,14 +373,13 @@ describe("parseError", () => {
   });
 
   it("falls back to statusText when body is not JSON", async () => {
-    const customFetch: typeof globalThis.fetch = async () => {
-      return new Response("not json", {
+    const customFetcher: Fetcher = async () =>
+      new Response("not json", {
         status: 500,
         statusText: "Internal Server Error",
-      });
-    };
+      }) as unknown as Awaited<ReturnType<Fetcher>>;
 
-    const client = bearerClient(customFetch);
+    const client = bearerClient(customFetcher);
 
     try {
       await client.getIntent("id");
@@ -436,9 +436,11 @@ describe("key conversion", () => {
 describe("request serialization", () => {
   it("converts camelCase request body to snake_case", async () => {
     let sentBody: any;
-    const f: typeof globalThis.fetch = async (_url, init) => {
-      sentBody = JSON.parse(init!.body as string);
-      return new Response(JSON.stringify({ intent_id: "x" }), { status: 201 });
+    const f: Fetcher = async (req) => {
+      sentBody = req.body ? JSON.parse(req.body) : undefined;
+      return new Response(JSON.stringify({ intent_id: "x" }), {
+        status: 201,
+      }) as unknown as Awaited<ReturnType<Fetcher>>;
     };
 
     const client = bearerClient(f);
@@ -496,11 +498,12 @@ describe("key conversion safety", () => {
 
 describe("parseError edge cases", () => {
   it("falls back to HTTP status code when statusText is empty", async () => {
-    const customFetch: typeof globalThis.fetch = async () => {
-      return new Response("not json", { status: 502, statusText: "" });
-    };
+    const customFetcher: Fetcher = async () =>
+      new Response("not json", { status: 502, statusText: "" }) as unknown as Awaited<
+        ReturnType<Fetcher>
+      >;
 
-    const client = bearerClient(customFetch);
+    const client = bearerClient(customFetcher);
 
     try {
       await client.getIntent("id");
@@ -512,15 +515,14 @@ describe("parseError edge cases", () => {
   });
 
   it("ignores non-object JSON response body", async () => {
-    const customFetch: typeof globalThis.fetch = async () => {
-      return new Response(JSON.stringify([1, 2, 3]), {
+    const customFetcher: Fetcher = async () =>
+      new Response(JSON.stringify([1, 2, 3]), {
         status: 400,
         statusText: "Bad Request",
         headers: { "Content-Type": "application/json" },
-      });
-    };
+      }) as unknown as Awaited<ReturnType<Fetcher>>;
 
-    const client = bearerClient(customFetch);
+    const client = bearerClient(customFetcher);
 
     try {
       await client.getIntent("id");
@@ -536,8 +538,8 @@ describe("parseError edge cases", () => {
 
 describe("URL encoding", () => {
   it("encodes special characters in intentId for executeIntent", async () => {
-    const f = mockFetch(200, { intent_id: "a/b", status: "PENDING" }, (url) => {
-      expect(url).toBe("http://localhost/v2/intents/a%2Fb/execute");
+    const f = mockFetcher(200, { intent_id: "a/b", status: "PENDING" }, (req) => {
+      expect(req.url).toBe("http://localhost/v2/intents/a%2Fb/execute");
     });
 
     const client = bearerClient(f);
@@ -545,8 +547,8 @@ describe("URL encoding", () => {
   });
 
   it("encodes special characters in intentId for getIntent", async () => {
-    const f = mockFetch(200, { intent_id: "a&b", status: "PENDING" }, (url) => {
-      expect(url).toBe("http://localhost/v2/intents?intent_id=a%26b");
+    const f = mockFetcher(200, { intent_id: "a&b", status: "PENDING" }, (req) => {
+      expect(req.url).toBe("http://localhost/v2/intents?intent_id=a%26b");
     });
 
     const client = bearerClient(f);
@@ -556,12 +558,10 @@ describe("URL encoding", () => {
 
 // ── PublicPayClient ─────────────────────────────────────────────────────
 
-function publicClient(
-  fetchFn: typeof globalThis.fetch,
-): PublicPayClient {
+function publicClient(fetcher: Fetcher): PublicPayClient {
   return new PublicPayClient({
     baseUrl: "http://localhost",
-    fetch: fetchFn,
+    fetcher,
   });
 }
 
@@ -587,13 +587,13 @@ describe("PublicPayClient createIntent", () => {
       payer_chain: "solana",
     };
 
-    const f = mockFetch(201, responseBody, (url, init) => {
-      expect(url).toBe("http://localhost/api/intents");
-      expect(init.method).toBe("POST");
-      expect(init.headers).toHaveProperty("Content-Type", "application/json");
-      expect(init.headers).not.toHaveProperty("Authorization");
-      expect(init.headers).not.toHaveProperty("X-Client-ID");
-      expect(init.headers).not.toHaveProperty("X-API-Key");
+    const f = mockFetcher(201, responseBody, (req) => {
+      expect(req.url).toBe("http://localhost/api/intents");
+      expect(req.method).toBe("POST");
+      expect(req.headers).toHaveProperty("Content-Type", "application/json");
+      expect(req.headers).not.toHaveProperty("Authorization");
+      expect(req.headers).not.toHaveProperty("X-Client-ID");
+      expect(req.headers).not.toHaveProperty("X-API-Key");
     });
 
     const client = publicClient(f);
@@ -608,7 +608,7 @@ describe("PublicPayClient createIntent", () => {
   });
 
   it("throws PayApiError on non-201 response", async () => {
-    const f = mockFetch(400, { message: "invalid amount" });
+    const f = mockFetcher(400, { message: "invalid amount" });
     const client = publicClient(f);
 
     try {
@@ -625,14 +625,14 @@ describe("PublicPayClient createIntent", () => {
   });
 
   it("throws PayValidationError for null request", async () => {
-    const client = publicClient(mockFetch(201, {}));
+    const client = publicClient(mockFetcher(201, {}));
     await expect(client.createIntent(null as any)).rejects.toThrow(
       PayValidationError,
     );
   });
 
   it("throws PayValidationError when both email and recipient are set", async () => {
-    const client = publicClient(mockFetch(201, {}));
+    const client = publicClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -644,7 +644,7 @@ describe("PublicPayClient createIntent", () => {
   });
 
   it("throws PayValidationError when amount is empty", async () => {
-    const client = publicClient(mockFetch(201, {}));
+    const client = publicClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -655,7 +655,7 @@ describe("PublicPayClient createIntent", () => {
   });
 
   it("throws PayValidationError when payerChain is empty", async () => {
-    const client = publicClient(mockFetch(201, {}));
+    const client = publicClient(mockFetcher(201, {}));
     await expect(
       client.createIntent({
         email: "a@b.com",
@@ -669,13 +669,13 @@ describe("PublicPayClient createIntent", () => {
 describe("PublicPayClient submitProof", () => {
   it("sends POST /api/intents/{id} with settle_proof body", async () => {
     let sentBody: any;
-    const f: typeof globalThis.fetch = async (input, init) => {
-      expect(input).toBe("http://localhost/api/intents/xyz-789");
-      sentBody = JSON.parse(init!.body as string);
+    const f: Fetcher = async (req) => {
+      expect(req.url).toBe("http://localhost/api/intents/xyz-789");
+      sentBody = req.body ? JSON.parse(req.body) : undefined;
       return new Response(
         JSON.stringify({ intent_id: "xyz-789", status: IntentStatus.Pending }),
         { status: 200, statusText: "OK" },
-      );
+      ) as unknown as Awaited<ReturnType<Fetcher>>;
     };
 
     const client = publicClient(f);
@@ -685,22 +685,22 @@ describe("PublicPayClient submitProof", () => {
   });
 
   it("throws PayValidationError for empty intentId", async () => {
-    const client = publicClient(mockFetch(200, {}));
+    const client = publicClient(mockFetcher(200, {}));
     await expect(client.submitProof("", "proof")).rejects.toThrow(
       PayValidationError,
     );
   });
 
   it("throws PayValidationError for empty settleProof", async () => {
-    const client = publicClient(mockFetch(200, {}));
+    const client = publicClient(mockFetcher(200, {}));
     await expect(client.submitProof("intent-1", "")).rejects.toThrow(
       PayValidationError,
     );
   });
 
   it("URL-encodes special characters in intentId", async () => {
-    const f = mockFetch(200, { intent_id: "a/b", status: "PENDING" }, (url) => {
-      expect(url).toBe("http://localhost/api/intents/a%2Fb");
+    const f = mockFetcher(200, { intent_id: "a/b", status: "PENDING" }, (req) => {
+      expect(req.url).toBe("http://localhost/api/intents/a%2Fb");
     });
 
     const client = publicClient(f);
@@ -710,11 +710,11 @@ describe("PublicPayClient submitProof", () => {
 
 describe("PublicPayClient getIntent", () => {
   it("sends GET /api/intents?intent_id=... and returns 200", async () => {
-    const f = mockFetch(
+    const f = mockFetcher(
       200,
       { intent_id: "abc", status: IntentStatus.BaseSettled },
-      (url) => {
-        expect(url).toBe("http://localhost/api/intents?intent_id=abc");
+      (req) => {
+        expect(req.url).toBe("http://localhost/api/intents?intent_id=abc");
       },
     );
 
@@ -724,7 +724,7 @@ describe("PublicPayClient getIntent", () => {
   });
 
   it("throws PayValidationError for empty intentId", async () => {
-    const client = publicClient(mockFetch(200, {}));
+    const client = publicClient(mockFetcher(200, {}));
     await expect(client.getIntent("")).rejects.toThrow(PayValidationError);
   });
 });

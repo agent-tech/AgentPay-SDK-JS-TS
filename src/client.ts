@@ -31,15 +31,34 @@ export type Auth = BearerAuth | ApiKeyAuth;
 
 // ── Client options ──────────────────────────────────────────────────────
 
+/** Generic HTTP request parameters (fetch-agnostic). */
+export interface FetchRequest {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body: string | undefined;
+  signal?: AbortSignal;
+}
+
+/** Generic HTTP response interface (fetch-agnostic). */
+export interface FetchResponse {
+  status: number;
+  statusText: string;
+  json(): Promise<unknown>;
+}
+
+/** Generic HTTP client. Accepts any implementation (fetch, axios, node-fetch, etc.). */
+export type Fetcher = (request: FetchRequest) => Promise<FetchResponse>;
+
 export interface PayClientOptions {
   /** API root without /v2. */
   baseUrl: string;
   /** Authentication credentials. */
   auth: Auth;
-  /** Request timeout in milliseconds (default 30 000). Ignored if custom fetch is provided. */
+  /** Request timeout in milliseconds (default 30 000). Ignored if custom fetcher is provided. */
   timeoutMs?: number;
-  /** Custom fetch implementation (replaces the default global fetch). */
-  fetch?: typeof globalThis.fetch;
+  /** Custom HTTP client (replaces the default global fetch). */
+  fetcher?: Fetcher;
 }
 
 // ── Key conversion helpers ──────────────────────────────────────────────
@@ -85,9 +104,21 @@ export function keysToCamel(obj: unknown): unknown {
   return convertKeys(obj, snakeToCamel);
 }
 
+// ── Fetch adapter ─────────────────────────────────────────────────────────
+
+function defaultFetcher(): Fetcher {
+  return (req) =>
+    globalThis.fetch(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+      signal: req.signal,
+    }) as Promise<FetchResponse>;
+}
+
 // ── Shared error parser ──────────────────────────────────────────────────
 
-async function parseError(resp: Response): Promise<PayApiError> {
+async function parseError(resp: FetchResponse): Promise<PayApiError> {
   let msg: string | undefined;
   try {
     const raw = await resp.json();
@@ -110,7 +141,7 @@ export class PayClient {
   private readonly baseUrl: string;
   private readonly authHeaders: Record<string, string>;
   private readonly timeoutMs: number;
-  private readonly fetchFn: typeof globalThis.fetch;
+  private readonly fetchFn: Fetcher;
   private readonly hasCustomFetch: boolean;
 
   constructor(options: PayClientOptions) {
@@ -152,19 +183,19 @@ export class PayClient {
     }
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
-    this.hasCustomFetch = typeof options.fetch === "function";
-    this.fetchFn = options.fetch ?? globalThis.fetch;
+    this.hasCustomFetch = typeof options.fetcher === "function";
+    this.fetchFn = options.fetcher ?? defaultFetcher();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   // ── Internal helpers ────────────────────────────────────────────────
 
-  private async do(
+  async #_do(
     method: string,
     path: string,
     body?: unknown,
     signal?: AbortSignal,
-  ): Promise<Response> {
+  ): Promise<FetchResponse> {
     const url = this.baseUrl + V2_PATH_PREFIX + path;
 
     const headers: Record<string, string> = { ...this.authHeaders };
@@ -200,7 +231,8 @@ export class PayClient {
     }
 
     try {
-      return await this.fetchFn(url, {
+      return await this.fetchFn({
+        url,
         method,
         headers,
         body: reqBody,
@@ -242,7 +274,7 @@ export class PayClient {
     if (!request.payerChain) {
       throw new PayValidationError("'payerChain' is required");
     }
-    const resp = await this.do("POST", "/intents", request, signal);
+    const resp = await this.#_do("POST", "/intents", request, signal);
     if (resp.status !== 201) {
       throw await parseError(resp);
     }
@@ -260,7 +292,7 @@ export class PayClient {
     if (!intentId) {
       throw new PayValidationError("intent_id is required");
     }
-    const resp = await this.do(
+    const resp = await this.#_do(
       "POST",
       `/intents/${encodeURIComponent(intentId)}/execute`,
       undefined,
@@ -282,7 +314,7 @@ export class PayClient {
     if (!intentId) {
       throw new PayValidationError("intent_id is required");
     }
-    const resp = await this.do(
+    const resp = await this.#_do(
       "GET",
       `/intents?intent_id=${encodeURIComponent(intentId)}`,
       undefined,
@@ -300,10 +332,10 @@ export class PayClient {
 export interface PublicPayClientOptions {
   /** API root without /api. */
   baseUrl: string;
-  /** Request timeout in milliseconds (default 30 000). Ignored if custom fetch is provided. */
+  /** Request timeout in milliseconds (default 30 000). Ignored if custom fetcher is provided. */
   timeoutMs?: number;
-  /** Custom fetch implementation (replaces the default global fetch). */
-  fetch?: typeof globalThis.fetch;
+  /** Custom HTTP client (replaces the default global fetch). */
+  fetcher?: Fetcher;
 }
 
 /**
@@ -313,7 +345,7 @@ export interface PublicPayClientOptions {
 export class PublicPayClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
-  private readonly fetchFn: typeof globalThis.fetch;
+  private readonly fetchFn: Fetcher;
   private readonly hasCustomFetch: boolean;
 
   constructor(options: PublicPayClientOptions) {
@@ -322,8 +354,8 @@ export class PublicPayClient {
     }
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
-    this.hasCustomFetch = typeof options.fetch === "function";
-    this.fetchFn = options.fetch ?? globalThis.fetch;
+    this.hasCustomFetch = typeof options.fetcher === "function";
+    this.fetchFn = options.fetcher ?? defaultFetcher();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
@@ -334,7 +366,7 @@ export class PublicPayClient {
     path: string,
     body?: unknown,
     signal?: AbortSignal,
-  ): Promise<Response> {
+  ): Promise<FetchResponse> {
     const url = this.baseUrl + API_PATH_PREFIX + path;
 
     const headers: Record<string, string> = {};
@@ -369,7 +401,8 @@ export class PublicPayClient {
     }
 
     try {
-      return await this.fetchFn(url, {
+      return await this.fetchFn({
+        url,
         method,
         headers,
         body: reqBody,

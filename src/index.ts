@@ -13,6 +13,9 @@ export type {
   Auth,
   BearerAuth,
   ApiKeyAuth,
+  Fetcher,
+  FetchRequest,
+  FetchResponse,
 } from "./client.js";
 
 export { IntentStatus } from "./types.js";
