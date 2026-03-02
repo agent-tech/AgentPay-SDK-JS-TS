@@ -1,0 +1,50 @@
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
+export interface CliConfig {
+	apiKey: string;
+	secretKey: string;
+	baseUrl: string;
+}
+
+const CONFIG_FILENAME = '.agent-tech-pay.json';
+
+function getConfigPath(): string {
+	return join(homedir(), CONFIG_FILENAME);
+}
+
+export function readConfig(): CliConfig | null {
+	const path = getConfigPath();
+	if (!existsSync(path)) {
+		return null;
+	}
+	try {
+		const raw = readFileSync(path, 'utf-8');
+		const data = JSON.parse(raw) as CliConfig;
+		if (!data.apiKey || !data.secretKey || !data.baseUrl) {
+			return null;
+		}
+		return data;
+	} catch {
+		return null;
+	}
+}
+
+export function writeConfig(config: CliConfig): void {
+	const path = getConfigPath();
+	writeFileSync(path, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+export function clearConfig(): boolean {
+	const path = getConfigPath();
+	if (!existsSync(path)) {
+		return false;
+	}
+	unlinkSync(path);
+	return true;
+}
+
+export function getConfigPathForDisplay(): string {
+	return getConfigPath();
+}

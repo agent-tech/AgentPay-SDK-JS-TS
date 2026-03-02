@@ -1,8 +1,7 @@
-import { PayValidationError } from './errors.js';
-import { buildAuthHeaders } from './auth.js';
 import type { Auth } from './auth.js';
-import { defaultFetcher, doRequest, parseError, type Fetcher } from './http.js';
-import { keysToCamel } from './utils.js';
+import { buildAuthHeaders } from './auth.js';
+import { PayValidationError } from './errors.js';
+import { defaultFetcher, doRequest, type Fetcher, parseError } from './http.js';
 import type {
 	CreateIntentRequest,
 	CreateIntentResponse,
@@ -10,6 +9,7 @@ import type {
 	GetIntentResponse,
 	SubmitProofResponse,
 } from './types.js';
+import { keysToCamel } from './utils.js';
 
 const V2_PATH_PREFIX = '/api/v2';
 const API_PATH_PREFIX = '/api';

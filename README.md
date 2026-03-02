@@ -16,6 +16,8 @@ Javascript & TypeScript client for the Agent Tech payment API — create intents
 
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [Direct Imports (Server / Client)](#direct-imports-server--client)
+- [CLI](#cli)
 - [Clients](#clients)
   - [PayClient (Authenticated)](#payclient-authenticated)
   - [PublicPayClient (Unauthenticated)](#publicpayclient-unauthenticated)
@@ -97,6 +99,73 @@ npx tsx examples/basic.ts
 ```
 
 Set `PAY_INTENT_ID` to skip creation and query an existing intent instead.
+
+## Direct Imports (Server / Client)
+
+For clearer separation of concerns, use dedicated entry points:
+
+**Server-side** (contains `secretKey` — use only on the backend):
+
+```ts
+import { PayClient } from "@agent-tech/pay/server";
+
+const client = new PayClient({
+  baseUrl: "https://api-pay.agent.tech",
+  auth: { apiKey: "your-api-key", secretKey: "your-secret-key" },
+});
+```
+
+**Client-side** (no secret credentials — safe for browser / payer-side code):
+
+```ts
+import { PublicPayClient } from "@agent-tech/pay/client";
+
+const client = new PublicPayClient({
+  baseUrl: "https://api-pay.agent.tech",
+});
+```
+
+The default `@agent-tech/pay` entry still exports both clients for backward compatibility.
+
+## CLI
+
+The package includes a CLI (`agent-pay`) for auth management and intent operations.
+
+### Install & run
+
+```bash
+npm install -g @agent-tech/pay
+agent-pay --help
+```
+
+Or run via `npx`:
+
+```bash
+npx @agent-tech/pay auth show
+```
+
+### Auth commands
+
+| Command | Description |
+|---------|-------------|
+| `agent-pay auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials to `~/.agent-tech-pay.json` |
+| `agent-pay auth show` | Show current config (secret key masked) |
+| `agent-pay auth clear` | Remove stored config |
+
+Env vars `PAY_API_KEY`, `PAY_SECRET_KEY`, `PAY_BASE_URL` can be used instead of flags for `auth set`.
+
+### Intent commands
+
+Requires auth config (except `submit-proof`). Use `auth set` first.
+
+| Command | Description |
+|---------|-------------|
+| `agent-pay intent create --amount <val> --payer-chain <chain> [--email <e> \| --recipient <r>]` | Create intent (server-side) |
+| `agent-pay intent execute <intent-id>` | Execute intent (server-side) |
+| `agent-pay intent get <intent-id>` | Get intent status (server-side) |
+| `agent-pay intent submit-proof <intent-id> --proof <settle-proof>` | Submit settle proof (client-side, no auth) |
+
+For `submit-proof`, `--base-url` or stored config is used; no secret key required.
 
 ## Clients
 

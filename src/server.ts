@@ -1,9 +1,12 @@
-export type { Auth } from './auth.js';
-export type { PayClientOptions, PublicPayClientOptions } from './client.js';
-export { PayClient, PublicPayClient } from './client.js';
-export { PayApiError, PayValidationError } from './errors.js';
+/**
+ * Server-side entry point. Use when you have apiKey + secretKey.
+ * Do NOT use in browser/client bundles — credentials must stay on the server.
+ */
 
-export type { Fetcher, FetchRequest, FetchResponse } from './http.js';
+export type { Auth } from './auth.js';
+export type { PayClientOptions } from './client.js';
+export { PayClient } from './client.js';
+export { PayApiError, PayValidationError } from './errors.js';
 export type {
 	BasePayment,
 	CreateIntentRequest,
@@ -15,6 +18,5 @@ export type {
 	IntentStatusValue,
 	PaymentRequirements,
 	SourcePayment,
-	SubmitProofResponse,
 } from './types.js';
 export { IntentStatus } from './types.js';
