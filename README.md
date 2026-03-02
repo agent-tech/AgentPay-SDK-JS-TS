@@ -225,7 +225,7 @@ Available on both clients. Exactly one of `email` or `recipient` must be provide
 const resp = await client.createIntent({
   email: "merchant@example.com", // or recipient (exactly one required)
   amount: "100.50",              // 0.01–1,000,000 USDC, max 6 decimals
-  payerChain: "solana",          // "solana", "base", or "bsc"
+  payerChain: "solana",          // "solana", "base"
 });
 ```
 
@@ -236,7 +236,7 @@ const resp = await client.createIntent({
 | `email` | `email` | One of email/recipient | Recipient email address |
 | `recipient` | `recipient` | One of email/recipient | Recipient wallet address |
 | `amount` | `amount` | Yes | USDC amount as string (e.g. `"100.50"`) |
-| `payerChain` | `payer_chain` | Yes | Source chain: `solana`, `base`, or `bsc` |
+| `payerChain` | `payer_chain` | Yes | Source chain: `solana`, `base` |
 
 ### executeIntent (PayClient only)
 
@@ -325,7 +325,6 @@ Use the status constants instead of bare strings:
 |---|---|---|
 | Solana | `solana` | Payer chain (source) |
 | Base | `base` | Payer chain (source) **and** settlement chain (target) |
-| BNB Smart Chain | `bsc` | Payer chain (source) |
 
 All payments settle on **Base** regardless of the source chain. The `payerChain` field in `CreateIntentRequest` specifies the source chain only.
 
