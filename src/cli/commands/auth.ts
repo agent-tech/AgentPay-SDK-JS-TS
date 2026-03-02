@@ -66,9 +66,13 @@ export function registerAuthCommands(program: Command): void {
 		.action(() => {
 			const removed = clearConfig();
 			if (removed) {
-				console.log('Config cleared.');
+				console.log(
+					"Config cleared. Sessions preserved. Use 'agent-pay reset' to remove all data.",
+				);
 			} else {
-				console.log('No config found.');
+				console.log(
+					"No config found. Sessions preserved. Use 'agent-pay reset' to remove all data.",
+				);
 			}
 		});
 }

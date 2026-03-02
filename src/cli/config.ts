@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	unlinkSync,
+	writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,10 +14,24 @@ export interface CliConfig {
 	baseUrl: string;
 }
 
-const CONFIG_FILENAME = '.agent-tech-pay.json';
+const DATA_DIRNAME = '.agent-tech-pay';
+const CONFIG_FILENAME = 'config.json';
+const SESSIONS_DIRNAME = 'sessions';
+
+export function getDataDir(): string {
+	return join(homedir(), DATA_DIRNAME);
+}
+
+export function ensureDataDir(): void {
+	mkdirSync(getDataDir(), { recursive: true });
+}
+
+export function getSessionDir(): string {
+	return join(getDataDir(), SESSIONS_DIRNAME);
+}
 
 function getConfigPath(): string {
-	return join(homedir(), CONFIG_FILENAME);
+	return join(getDataDir(), CONFIG_FILENAME);
 }
 
 export function readConfig(): CliConfig | null {
@@ -32,6 +52,7 @@ export function readConfig(): CliConfig | null {
 }
 
 export function writeConfig(config: CliConfig): void {
+	ensureDataDir();
 	const path = getConfigPath();
 	writeFileSync(path, JSON.stringify(config, null, 2), 'utf-8');
 }

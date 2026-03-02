@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerIntentCommands } from './commands/intent.js';
+import { registerResetCommand } from './commands/reset.js';
 
 const program = new Command();
 
@@ -13,5 +14,6 @@ program
 
 registerAuthCommands(program);
 registerIntentCommands(program);
+registerResetCommand(program);
 
 program.parse();

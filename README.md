@@ -148,9 +148,10 @@ npx @agent-tech/pay auth show
 
 | Command | Description |
 |---------|-------------|
-| `agent-pay auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials to `~/.agent-tech-pay.json` |
+| `agent-pay auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials to `~/.agent-tech-pay/config.json` |
 | `agent-pay auth show` | Show current config (secret key masked) |
 | `agent-pay auth clear` | Remove stored config |
+| `agent-pay reset [--yes]` | Remove **all** stored config + sessions |
 
 Env vars `PAY_API_KEY`, `PAY_SECRET_KEY`, `PAY_BASE_URL` can be used instead of flags for `auth set`.
 
@@ -161,9 +162,10 @@ Requires auth config (except `submit-proof`). Use `auth set` first.
 | Command | Description |
 |---------|-------------|
 | `agent-pay intent create --amount <val> --payer-chain <chain> [--email <e> \| --recipient <r>]` | Create intent (server-side) |
-| `agent-pay intent execute <intent-id>` | Execute intent (server-side) |
-| `agent-pay intent get <intent-id>` | Get intent status (server-side) |
+| `agent-pay intent execute [intent-id]` | Execute intent (server-side). If omitted, uses latest active session |
+| `agent-pay intent get [intent-id]` | Get intent status (server-side). If omitted, uses latest active session |
 | `agent-pay intent submit-proof <intent-id> --proof <settle-proof>` | Submit settle proof (client-side, no auth) |
+| `agent-pay intent sessions [--expired]` | List stored sessions (optionally expired only) |
 
 For `submit-proof`, `--base-url` or stored config is used; no secret key required.
 
