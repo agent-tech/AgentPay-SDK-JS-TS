@@ -18,6 +18,7 @@ Javascript & TypeScript client for the Agent Tech payment API — create intents
 - [Quick Start](#quick-start)
 - [Direct Imports (Server / Client)](#direct-imports-server--client)
 - [CLI](#cli)
+- [Cursor Skills](#skills)
 - [Clients](#clients)
   - [PayClient (Authenticated)](#payclient-authenticated)
   - [PublicPayClient (Unauthenticated)](#publicpayclient-unauthenticated)
@@ -168,6 +169,16 @@ Requires auth config (except `submit-proof`). Use `auth set` first.
 | `agent-pay intent sessions [--expired]` | List stored sessions (optionally expired only) |
 
 For `submit-proof`, `--base-url` or stored config is used; no secret key required.
+
+## Skills
+
+If you use Cursor, you can install the `agent-pay-cli` skill so the AI can run the `agent-pay` CLI for you:
+
+```bash
+npx skills add agent-tech/AgentPay-SDK-JS-TS
+```
+
+The `skills` follows the format `npx skills add <github-org>/<github-repo>`. To learn more, see the [skills.sh documentation](https://skills.sh/docs).
 
 ## Clients
 
