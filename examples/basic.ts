@@ -3,46 +3,34 @@
  *
  * Run from repo root:
  *
- *   PAY_BASE_URL=https://api-pay.agent.tech/api \
- *   PAY_CLIENT_ID=id \
- *   PAY_CLIENT_SECRET=secret \
+ *   PAY_BASE_URL=https://api-pay.agent.tech \
+ *   PAY_API_KEY=your-api-key \
+ *   PAY_SECRET_KEY=your-secret-key \
  *   npx tsx examples/basic.ts
- *
- * To use header-based auth instead:
- *
- *   PAY_BASE_URL=... PAY_CLIENT_ID=... PAY_API_KEY=key npx tsx examples/basic.ts
  *
  * Set PAY_EMAIL to override the default merchant email (merchant@example.com).
  *
  * To only query an existing intent:
  *
- *   PAY_BASE_URL=... PAY_CLIENT_ID=... PAY_CLIENT_SECRET=... PAY_INTENT_ID=uuid npx tsx examples/basic.ts
+ *   PAY_BASE_URL=... PAY_API_KEY=... PAY_SECRET_KEY=... PAY_INTENT_ID=uuid npx tsx examples/basic.ts
  */
 
 import { PayClient } from "../src/index.js";
 import type { Auth } from "../src/index.js";
 
 const baseUrl = process.env.PAY_BASE_URL ?? "";
-const clientId = process.env.PAY_CLIENT_ID ?? "";
-const clientSecret = process.env.PAY_CLIENT_SECRET ?? "";
 const apiKey = process.env.PAY_API_KEY ?? "";
+const secretKey = process.env.PAY_SECRET_KEY ?? "";
 const intentId = process.env.PAY_INTENT_ID ?? "";
 
-if (!baseUrl || !clientId) {
+if (!baseUrl || !apiKey || !secretKey) {
   console.error(
-    "Set PAY_BASE_URL, PAY_CLIENT_ID, and one of PAY_CLIENT_SECRET or PAY_API_KEY.",
+    "Set PAY_BASE_URL, PAY_API_KEY, and PAY_SECRET_KEY.",
   );
   process.exit(1);
 }
 
-function getAuth(): Auth {
-  if (apiKey) return { type: "apiKey", clientId, apiKey };
-  if (clientSecret) return { type: "bearer", clientId, clientSecret };
-  console.error("Provide PAY_CLIENT_SECRET or PAY_API_KEY.");
-  process.exit(1);
-}
-
-const auth = getAuth();
+const auth: Auth = { apiKey, secretKey };
 const client = new PayClient({ baseUrl, auth });
 
 if (intentId) {

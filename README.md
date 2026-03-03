@@ -6,16 +6,19 @@
 
 Javascript & TypeScript client for the Agent Tech payment API — create intents, execute USDC transfers on Base, and query status.
 
-- **Zero runtime dependencies** — uses the built-in `fetch` API (Node 18+)
+- **Lightweight** — two small runtime deps for key conversion; uses built-in `fetch` (Node 18+)
 - **Dual ESM + CommonJS** — works in TypeScript and JavaScript projects
 - **Two clients** — `PayClient` (authenticated, server-side) and `PublicPayClient` (unauthenticated, payer-side)
-- **Two auth modes** for PayClient — Bearer token or header-based API key
+- **Bearer token authentication** for PayClient
 - **All payments settle on Base** chain
 
 ## Table of Contents
 
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [Direct Imports (Server / Client)](#direct-imports-server--client)
+- [CLI](#cli)
+- [Cursor Skills](#skills)
 - [Clients](#clients)
   - [PayClient (Authenticated)](#payclient-authenticated)
   - [PublicPayClient (Unauthenticated)](#publicpayclient-unauthenticated)
@@ -41,8 +44,8 @@ npm install @agent-tech/pay
 import { PayClient, IntentStatus } from "@agent-tech/pay";
 
 const client = new PayClient({
-  baseUrl: "https://api-pay.agent.tech/api",
-  auth: { type: "bearer", clientId: "your-client-id", clientSecret: "your-client-secret" },
+  baseUrl: "https://api-pay.agent.tech",
+  auth: { apiKey: "your-api-key", secretKey: "your-secret-key" },
 });
 
 // 1. Create intent
@@ -68,8 +71,8 @@ console.log("Final status:", intent.status);
 const { PayClient } = require("@agent-tech/pay");
 
 const client = new PayClient({
-  baseUrl: "https://api-pay.agent.tech/api",
-  auth: { type: "bearer", clientId: "your-client-id", clientSecret: "your-client-secret" },
+  baseUrl: "https://api-pay.agent.tech",
+  auth: { apiKey: "your-api-key", secretKey: "your-secret-key" },
 });
 
 async function main() {
@@ -90,13 +93,92 @@ git clone https://github.com/agent-tech/agent-sdk-js
 cd agent-sdk-js
 npm install
 
-PAY_BASE_URL=https://api-pay.agent.tech/api \
-PAY_CLIENT_ID=your-client-id \
-PAY_CLIENT_SECRET=your-client-secret \
+PAY_BASE_URL=https://api-pay.agent.tech \
+PAY_API_KEY=your-api-key \
+PAY_SECRET_KEY=your-secret-key \
 npx tsx examples/basic.ts
 ```
 
 Set `PAY_INTENT_ID` to skip creation and query an existing intent instead.
+
+## Direct Imports (Server / Client)
+
+For clearer separation of concerns, use dedicated entry points:
+
+**Server-side** (contains `secretKey` — use only on the backend):
+
+```ts
+import { PayClient } from "@agent-tech/pay/server";
+
+const client = new PayClient({
+  baseUrl: "https://api-pay.agent.tech",
+  auth: { apiKey: "your-api-key", secretKey: "your-secret-key" },
+});
+```
+
+**Client-side** (no secret credentials — safe for browser / payer-side code):
+
+```ts
+import { PublicPayClient } from "@agent-tech/pay/client";
+
+const client = new PublicPayClient({
+  baseUrl: "https://api-pay.agent.tech",
+});
+```
+
+The default `@agent-tech/pay` entry still exports both clients for backward compatibility.
+
+## CLI
+
+The package includes a CLI (`agent-pay`) for auth management and intent operations.
+
+### Install & run
+
+```bash
+npm install -g @agent-tech/pay
+agent-pay --help
+```
+
+Or run via `npx`:
+
+```bash
+npx @agent-tech/pay auth show
+```
+
+### Auth commands
+
+| Command | Description |
+|---------|-------------|
+| `agent-pay auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials to `~/.agent-tech-pay/config.json` |
+| `agent-pay auth show` | Show current config (secret key masked) |
+| `agent-pay auth clear` | Remove stored config |
+| `agent-pay reset [--yes]` | Remove **all** stored config + sessions |
+
+Env vars `PAY_API_KEY`, `PAY_SECRET_KEY`, `PAY_BASE_URL` can be used instead of flags for `auth set`.
+
+### Intent commands
+
+Requires auth config (except `submit-proof`). Use `auth set` first.
+
+| Command | Description |
+|---------|-------------|
+| `agent-pay intent create --amount <val> --payer-chain <chain> [--email <e> \| --recipient <r>]` | Create intent (server-side) |
+| `agent-pay intent execute [intent-id]` | Execute intent (server-side). If omitted, uses latest active session |
+| `agent-pay intent get [intent-id]` | Get intent status (server-side). If omitted, uses latest active session |
+| `agent-pay intent submit-proof <intent-id> --proof <settle-proof>` | Submit settle proof (client-side, no auth) |
+| `agent-pay intent sessions [--expired]` | List stored sessions (optionally expired only) |
+
+For `submit-proof`, `--base-url` or stored config is used; no secret key required.
+
+## Skills
+
+If you use Cursor, you can install the `agent-pay-cli` skill so the AI can run the `agent-pay` CLI for you:
+
+```bash
+npx skills add agent-tech/AgentPay-SDK-JS-TS
+```
+
+The `skills` follows the format `npx skills add <github-org>/<github-repo>`. To learn more, see the [skills.sh documentation](https://skills.sh/docs).
 
 ## Clients
 
@@ -104,14 +186,14 @@ The SDK provides two client classes for different use cases.
 
 ### PayClient (Authenticated)
 
-Server-side client that uses `/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
+Server-side client that uses `/api/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
 
 ```ts
 import { PayClient } from "@agent-tech/pay";
 
 const client = new PayClient({
-  baseUrl: "https://api-pay.agent.tech/api",
-  auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
+  baseUrl: "https://api-pay.agent.tech",
+  auth: { apiKey: "id", secretKey: "secret" },
 });
 
 const intent = await client.createIntent({ email: "merchant@example.com", amount: "10.00", payerChain: "solana" });
@@ -121,19 +203,21 @@ const status = await client.getIntent(intent.intentId);
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `createIntent(req)` | `POST /v2/intents` | Create a payment intent |
-| `executeIntent(id)` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
-| `getIntent(id)` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
+| `createIntent(req)` | `POST /api/v2/intents` | Create a payment intent |
+| `executeIntent(id)` | `POST /api/v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
+| `getIntent(id)` | `GET /api/v2/intents?intent_id=...` | Get intent status and receipt |
 
 ### PublicPayClient (Unauthenticated)
 
 Client-side / payer-side client that uses `/api` endpoints without authentication. Use this when the integrator holds the payer's wallet and can sign X402 payments and submit settle proofs directly.
 
+Both clients use the same `baseUrl` (API root without path prefix, e.g. `https://api-pay.agent.tech`).
+
 ```ts
 import { PublicPayClient } from "@agent-tech/pay";
 
 const client = new PublicPayClient({
-  baseUrl: "https://api-pay.agent.tech/api",
+  baseUrl: "https://api-pay.agent.tech",
 });
 
 const intent = await client.createIntent({ recipient: "0x...", amount: "10.00", payerChain: "base" });
@@ -152,25 +236,14 @@ const status = await client.getIntent(intent.intentId);
 
 Authentication applies to `PayClient` only. `PublicPayClient` requires no credentials.
 
-### Bearer token (recommended)
+### Bearer token
 
-Base64-encodes `clientId:clientSecret` and sends it as `Authorization: Bearer <token>`.
-
-```ts
-const client = new PayClient({
-  baseUrl,
-  auth: { type: "bearer", clientId: "client-id", clientSecret: "client-secret" },
-});
-```
-
-### Header-based API key
-
-Sends `X-Client-ID` and `X-API-Key` headers.
+Base64-encodes `apiKey:secretKey` and sends it as `Authorization: Bearer <token>`.
 
 ```ts
 const client = new PayClient({
   baseUrl,
-  auth: { type: "apiKey", clientId: "client-id", apiKey: "api-key" },
+  auth: { apiKey: "api-key", secretKey: "secret-key" },
 });
 ```
 
@@ -181,7 +254,7 @@ The default timeout is **30 seconds** for both clients. Override with options:
 ```ts
 const client = new PayClient({
   baseUrl,
-  auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
+  auth: { apiKey: "id", secretKey: "secret" },
   timeoutMs: 60_000,
 });
 
@@ -189,13 +262,13 @@ const client = new PayClient({
 const publicClient = new PublicPayClient({ baseUrl, timeoutMs: 60_000 });
 ```
 
-Or provide a custom `fetch` implementation (timeout is ignored when custom fetch is provided):
+Or provide a custom `fetcher` implementation (timeout is ignored when custom fetcher is provided):
 
 ```ts
 const client = new PayClient({
   baseUrl,
-  auth: { type: "bearer", clientId: "id", clientSecret: "secret" },
-  fetch: myCustomFetch,
+  auth: { apiKey: "id", secretKey: "secret" },
+  fetcher: myCustomFetcher,
 });
 ```
 
@@ -205,9 +278,9 @@ const client = new PayClient({
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `createIntent` | `POST /v2/intents` | Create a payment intent |
-| `executeIntent` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
-| `getIntent` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
+| `createIntent` | `POST /api/v2/intents` | Create a payment intent |
+| `executeIntent` | `POST /api/v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
+| `getIntent` | `GET /api/v2/intents?intent_id=...` | Get intent status and receipt |
 
 ### PublicPayClient
 
@@ -285,8 +358,8 @@ Intents expire **10 minutes** after creation.
                           └────────┬─────────┘
                                    │
                       ┌────────────┼────────────┐
-                      │            │             │
-                      ▼            ▼             ▼
+                      │            │            │
+                      ▼            ▼            ▼
                ┌──────────┐ ┌──────────┐ ┌─────────────────────┐
                │ EXPIRED  │ │ PENDING  │ │ VERIFICATION_FAILED │
                └──────────┘ └────┬─────┘ └─────────────────────┘
