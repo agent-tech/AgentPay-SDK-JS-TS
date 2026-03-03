@@ -58,7 +58,7 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "MIT",
   "sideEffects": false,

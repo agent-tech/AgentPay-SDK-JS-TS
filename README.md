@@ -172,13 +172,21 @@ For `submit-proof`, `--base-url` or stored config is used; no secret key require
 
 ## Skills
 
-If you use Cursor, you can install the `agent-pay-cli` skill so the AI can run the `agent-pay` CLI for you:
+### npx (skills.sh)
 
 ```bash
 npx skills add agent-tech/AgentPay-SDK-JS-TS
 ```
 
-The `skills` follows the format `npx skills add <github-org>/<github-repo>`. To learn more, see the [skills.sh documentation](https://skills.sh/docs).
+The `skills` CLI uses the format `npx skills add <github-org>/<github-repo>`. See [skills.sh documentation](https://skills.sh/docs).
+
+### Clawhub
+
+```bash
+clawhub skills add agent-tech/AgentPay-SDK-JS-TS
+```
+
+Install the same skill via [Clawhub](https://clawhub.ai) with the same `<org>/<repo>` format.
 
 ## Clients
 
