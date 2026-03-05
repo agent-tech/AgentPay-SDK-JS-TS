@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.1...pay-v0.1.2) (2026-03-05)
+
+
+### Features
+
+* integrate Zod for input validation in PayClient and PublicPayClient, update README for validation error handling, and add new schemas for request validation ([462794a](https://github.com/agent-tech/AgentPay-SDK-JS-TS/commit/462794aca5d4694f21adf8b71ab80c7b12c1adff))
+
 ## [0.1.1](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.0...pay-v0.1.1) (2026-03-03)
 
 
