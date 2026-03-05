@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.2...pay-v0.1.3) (2026-03-05)
+
+
+### Features
+
+* add balance command to read USDC balance from Base chain, update documentation accordingly ([ec99ef6](https://github.com/agent-tech/AgentPay-SDK-JS-TS/commit/ec99ef6d03a08e69af3fba41b5a4bf5294e4cced))
+
 ## [0.1.2](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.1...pay-v0.1.2) (2026-03-05)
 
 
