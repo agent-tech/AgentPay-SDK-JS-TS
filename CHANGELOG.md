@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.5...pay-v0.1.6) (2026-03-05)
+
+
+### Code Refactoring
+
+* update API endpoints to remove 'api' prefix for cleaner structure across documentation and client implementation ([291ba60](https://github.com/agent-tech/AgentPay-SDK-JS-TS/commit/291ba60d6875455b04c1a7292e552a019d808b0b))
+
 ## [0.1.5](https://github.com/agent-tech/AgentPay-SDK-JS-TS/compare/pay-v0.1.4...pay-v0.1.5) (2026-03-05)
 
 

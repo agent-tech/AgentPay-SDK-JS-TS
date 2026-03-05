@@ -1,6 +1,6 @@
 {
   "name": "@agent-tech/pay",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "TypeScript client for the Agent Tech v2 payment API",
   "type": "module",
   "main": "./dist/cjs/index.js",
