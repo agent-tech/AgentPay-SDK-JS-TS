@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { getVersion } from './version.macro.js' with { type: 'macro' };
 import { Command } from 'commander';
 import { registerAuthCommands } from './commands/auth.js';
 import { registerBalanceCommands } from './commands/balance.js';
@@ -11,7 +12,7 @@ const program = new Command();
 program
 	.name('agent-pay')
 	.description('CLI for Agent Tech Pay API')
-	.version('0.1.0');
+	.version(getVersion());
 
 registerAuthCommands(program);
 registerBalanceCommands(program);
