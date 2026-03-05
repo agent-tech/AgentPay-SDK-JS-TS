@@ -50,7 +50,7 @@ npm run test
 - **Imports**: Use `.js` extension in source imports (e.g. `from "./client.js"`) for ESM compatibility
 - **API shape**: Snake_case in JSON request/response; camelCase in TS via `camelcase-keys` / `decamelize-keys`
 - **Errors**: `PayApiError` for HTTP errors, `PayValidationError` for pre-request validation
-- **Clients**: `PayClient` (authenticated, `/api/v2`) and `PublicPayClient` (unauthenticated, `/api`)
+- **Clients**: `PayClient` (authenticated, `/v2`) and `PublicPayClient` (unauthenticated, `/api`)
 
 ## Git & Commits
 

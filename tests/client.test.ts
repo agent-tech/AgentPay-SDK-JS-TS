@@ -183,7 +183,7 @@ describe("createIntent", () => {
     };
 
     const f = mockFetcher(201, responseBody, (req) => {
-      expect(req.url).toBe("http://localhost/api/v2/intents");
+      expect(req.url).toBe("http://localhost/v2/intents");
       expect(req.method).toBe("POST");
       expect(req.headers).toHaveProperty("Content-Type", "application/json");
       expect(req.headers).toHaveProperty("Authorization");
@@ -317,7 +317,7 @@ describe("executeIntent", () => {
       200,
       { intent_id: "abc-123", status: IntentStatus.BaseSettled },
       (req) => {
-        expect(req.url).toBe("http://localhost/api/v2/intents/abc-123/execute");
+        expect(req.url).toBe("http://localhost/v2/intents/abc-123/execute");
       },
     );
 
@@ -340,7 +340,7 @@ describe("getIntent", () => {
       200,
       { intent_id: "xyz", status: IntentStatus.BaseSettled },
       (req) => {
-        expect(req.url).toBe("http://localhost/api/v2/intents?intent_id=xyz");
+        expect(req.url).toBe("http://localhost/v2/intents?intent_id=xyz");
       },
     );
 
@@ -476,7 +476,7 @@ describe("parseError edge cases", () => {
 describe("URL encoding", () => {
   it("encodes special characters in intentId for executeIntent", async () => {
     const f = mockFetcher(200, { intent_id: "a/b", status: "PENDING" }, (req) => {
-      expect(req.url).toBe("http://localhost/api/v2/intents/a%2Fb/execute");
+      expect(req.url).toBe("http://localhost/v2/intents/a%2Fb/execute");
     });
 
     const client = bearerClient(f);
@@ -485,7 +485,7 @@ describe("URL encoding", () => {
 
   it("encodes special characters in intentId for getIntent", async () => {
     const f = mockFetcher(200, { intent_id: "a&b", status: "PENDING" }, (req) => {
-      expect(req.url).toBe("http://localhost/api/v2/intents?intent_id=a%26b");
+      expect(req.url).toBe("http://localhost/v2/intents?intent_id=a%26b");
     });
 
     const client = bearerClient(f);

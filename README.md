@@ -195,7 +195,7 @@ The SDK provides two client classes for different use cases.
 
 ### PayClient (Authenticated)
 
-Server-side client that uses `/api/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
+Server-side client that uses `/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
 
 ```ts
 import { PayClient } from "@agent-tech/pay";
@@ -212,9 +212,9 @@ const status = await client.getIntent(intent.intentId);
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `createIntent(req)` | `POST /api/v2/intents` | Create a payment intent |
-| `executeIntent(id)` | `POST /api/v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
-| `getIntent(id)` | `GET /api/v2/intents?intent_id=...` | Get intent status and receipt |
+| `createIntent(req)` | `POST /v2/intents` | Create a payment intent |
+| `executeIntent(id)` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
+| `getIntent(id)` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
 
 ### PublicPayClient (Unauthenticated)
 
@@ -287,9 +287,9 @@ const client = new PayClient({
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `createIntent` | `POST /api/v2/intents` | Create a payment intent |
-| `executeIntent` | `POST /api/v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
-| `getIntent` | `GET /api/v2/intents?intent_id=...` | Get intent status and receipt |
+| `createIntent` | `POST /v2/intents` | Create a payment intent |
+| `executeIntent` | `POST /v2/intents/{id}/execute` | Execute transfer on Base with Agent wallet |
+| `getIntent` | `GET /v2/intents?intent_id=...` | Get intent status and receipt |
 
 ### PublicPayClient
 

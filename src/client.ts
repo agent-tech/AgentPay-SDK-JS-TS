@@ -76,7 +76,7 @@ export class PayClient {
 	}
 
 	/**
-	 * Create a payment intent (POST /api/v2/intents).
+	 * Create a payment intent (POST /v2/intents).
 	 * Exactly one of request.email or request.recipient must be set.
 	 */
 	async createIntent(
@@ -93,7 +93,7 @@ export class PayClient {
 
 	/**
 	 * Trigger transfer on Base using the Agent wallet
-	 * (POST /api/v2/intents/{intent_id}/execute).
+	 * (POST /v2/intents/{intent_id}/execute).
 	 */
 	async executeIntent(
 		intentId: string,
@@ -113,7 +113,7 @@ export class PayClient {
 	}
 
 	/**
-	 * Get intent status and receipt (GET /api/v2/intents?intent_id=...).
+	 * Get intent status and receipt (GET /v2/intents?intent_id=...).
 	 */
 	async getIntent(
 		intentId: string,
