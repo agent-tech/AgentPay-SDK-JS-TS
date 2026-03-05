@@ -31,6 +31,19 @@ Shows current config. Secret key is masked (first 4 + last 4 chars visible).
 
 Removes `~/.agent-tech-pay/config.json` (sessions preserved).
 
+### balance read
+
+```bash
+agent-pay balance read --address <0x...> [--rpc-url <url>]
+```
+
+Reads USDC balance of an address on Base mainnet. Uses USDC contract `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` and RPC `https://mainnet.base.org` by default.
+
+- `--address` — Agent wallet address (0x + 40 hex chars). Env var: `PAY_AGENT_ADDRESS`
+- `--rpc-url` — Base RPC URL. Env var: `PAY_BASE_RPC_URL`
+
+Output: JSON with `address`, `usdcContract`, `rpcUrl`, `balanceRaw`, `balanceUsdc`.
+
 ### reset
 
 ```bash

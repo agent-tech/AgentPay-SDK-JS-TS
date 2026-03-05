@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import { registerAuthCommands } from './commands/auth.js';
+import { registerBalanceCommands } from './commands/balance.js';
 import { registerIntentCommands } from './commands/intent.js';
 import { registerResetCommand } from './commands/reset.js';
 
@@ -13,6 +14,7 @@ program
 	.version('0.1.0');
 
 registerAuthCommands(program);
+registerBalanceCommands(program);
 registerIntentCommands(program);
 registerResetCommand(program);
 

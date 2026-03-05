@@ -152,6 +152,7 @@ npx @agent-tech/pay auth show
 | `agent-pay auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials to `~/.agent-tech-pay/config.json` |
 | `agent-pay auth show` | Show current config (secret key masked) |
 | `agent-pay auth clear` | Remove stored config |
+| `agent-pay balance read --address <addr> [--rpc-url <url>]` | Read agent USDC balance from Base chain (default RPC: https://mainnet.base.org) |
 | `agent-pay reset [--yes]` | Remove **all** stored config + sessions |
 
 Env vars `PAY_API_KEY`, `PAY_SECRET_KEY`, `PAY_BASE_URL` can be used instead of flags for `auth set`.

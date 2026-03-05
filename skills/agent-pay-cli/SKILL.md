@@ -24,6 +24,7 @@ Config is stored at `~/.agent-tech-pay/config.json` (sessions in `~/.agent-tech-
 | `auth set --api-key <key> --secret-key <key> --base-url <url>` | Save credentials |
 | `auth show` | Show current config (secret masked) |
 | `auth clear` | Remove stored config |
+| `balance read --address <addr> [--rpc-url <url>]` | Read agent USDC balance from Base chain (default RPC: https://mainnet.base.org) |
 | `reset [--yes]` | Remove all stored config + sessions |
 
 **Env vars** for `auth set`: `PAY_API_KEY`, `PAY_SECRET_KEY`, `PAY_BASE_URL` can replace flags.
