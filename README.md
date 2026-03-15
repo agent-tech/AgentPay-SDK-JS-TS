@@ -1,6 +1,6 @@
 # Pay SDK (JS & TS)
 
-[![npm version](https://img.shields.io/npm/v/@agent-tech/pay.svg)](https://www.npmjs.com/package/@agent-tech/pay)
+[![npm version](https://img.shields.io/npm/v/@agenttech/pay.svg)](https://www.npmjs.com/package/@agenttech/pay)
 [![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org)
 
@@ -32,7 +32,7 @@ Javascript & TypeScript client for the Agent Tech payment API — create intents
 ## Install
 
 ```bash
-npm install @agent-tech/pay
+npm install @agenttech/pay
 ```
 
 ## Quick Start
@@ -40,7 +40,7 @@ npm install @agent-tech/pay
 ### TypeScript (ESM)
 
 ```ts
-import { PayClient, IntentStatus } from "@agent-tech/pay";
+import { PayClient, IntentStatus } from "@agenttech/pay";
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech",
@@ -67,7 +67,7 @@ console.log("Final status:", intent.status);
 ### JavaScript (CommonJS)
 
 ```js
-const { PayClient } = require("@agent-tech/pay");
+const { PayClient } = require("@agenttech/pay");
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech",
@@ -107,7 +107,7 @@ For clearer separation of concerns, use dedicated entry points:
 **Server-side** (contains `secretKey` — use only on the backend):
 
 ```ts
-import { PayClient } from "@agent-tech/pay/server";
+import { PayClient } from "@agenttech/pay/server";
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech",
@@ -118,14 +118,14 @@ const client = new PayClient({
 **Client-side** (no secret credentials — safe for browser / payer-side code):
 
 ```ts
-import { PublicPayClient } from "@agent-tech/pay/client";
+import { PublicPayClient } from "@agenttech/pay/client";
 
 const client = new PublicPayClient({
   baseUrl: "https://api-pay.agent.tech",
 });
 ```
 
-The default `@agent-tech/pay` entry still exports both clients for backward compatibility.
+The default `@agenttech/pay` entry still exports both clients for backward compatibility.
 
 ## CLI
 
@@ -134,14 +134,14 @@ The package includes a CLI (`agent-pay`) for auth management and intent operatio
 ### Install & run
 
 ```bash
-npm install -g @agent-tech/pay
+npm install -g @agenttech/pay
 agent-pay --help
 ```
 
 Or run via `npx`:
 
 ```bash
-npx @agent-tech/pay auth show
+npx @agenttech/pay auth show
 ```
 
 ### Auth commands
@@ -197,7 +197,7 @@ The SDK provides two client classes for different use cases.
 Server-side client that uses `/v2` endpoints with authentication. The backend Agent wallet signs and executes transfers — no wallet or signing required on your side.
 
 ```ts
-import { PayClient } from "@agent-tech/pay";
+import { PayClient } from "@agenttech/pay";
 
 const client = new PayClient({
   baseUrl: "https://api-pay.agent.tech",
@@ -222,7 +222,7 @@ Client-side / payer-side client that uses `/api` endpoints without authenticatio
 Both clients use the same `baseUrl` (API root without path prefix, e.g. `https://api-pay.agent.tech`).
 
 ```ts
-import { PublicPayClient } from "@agent-tech/pay";
+import { PublicPayClient } from "@agenttech/pay";
 
 const client = new PublicPayClient({
   baseUrl: "https://api-pay.agent.tech",
@@ -359,7 +359,7 @@ The SDK uses two error classes:
 **`PayApiError`** — thrown for non-2xx HTTP responses from the API:
 
 ```ts
-import { PayApiError } from "@agent-tech/pay";
+import { PayApiError } from "@agenttech/pay";
 
 try {
   await client.createIntent(req);
@@ -373,7 +373,7 @@ try {
 **`PayValidationError`** — thrown when the SDK rejects a request before it reaches the API. Input validation is implemented with [Zod](https://zod.dev); error messages follow the format `validation: <message>`.
 
 ```ts
-import { PayValidationError } from "@agent-tech/pay";
+import { PayValidationError } from "@agenttech/pay";
 
 try {
   await client.executeIntent("");

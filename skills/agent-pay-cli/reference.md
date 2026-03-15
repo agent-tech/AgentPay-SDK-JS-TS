@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-npm install -g @agent-tech/pay
+npm install -g @agenttech/pay
 # or use via npx without installing
 ```
 

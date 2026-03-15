@@ -10,7 +10,7 @@ CLI for Agent Tech Pay — auth management and payment intent operations.
 ## How to run
 
 ```bash
-npx @agent-tech/pay <command>
+npx @agenttech/pay <command>
 # or, if installed globally:
 agent-pay <command>
 ```

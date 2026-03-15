@@ -4,7 +4,7 @@ Guidance for AI coding agents working on the Agent Tech Pay SDK.
 
 ## Project Overview
 
-- **Package**: `@agent-tech/pay` — TypeScript/JavaScript client for the Agent Tech v2 payment API
+- **Package**: `@agenttech/pay` — TypeScript/JavaScript client for the Agent Tech v2 payment API
 - **Entries**:
   - `src/index.ts` — default entry; exports both `PayClient` and `PublicPayClient`
   - `src/server.ts` — server-side only; `PayClient` (uses `apiKey` + `secretKey`)
