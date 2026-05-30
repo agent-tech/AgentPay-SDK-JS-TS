@@ -1,3 +1,12 @@
+/** Supported asset identifiers for use as `payerAsset` or `targetAsset`. */
+export const Asset = {
+	USDC: 'usdc',
+	USDT: 'usdt',
+	USDT0: 'usdt0',
+} as const;
+
+export type AssetValue = (typeof Asset)[keyof typeof Asset];
+
 /** Supported chain identifiers for use as `payerChain` or `targetChain`. */
 export const Chain = {
 	/** Solana devnet (testnet). */
@@ -65,6 +74,10 @@ export interface CreateIntentRequest {
 	payerChain: ChainValue | (string & {});
 	/** Target chain for settlement. */
 	targetChain: ChainValue | (string & {});
+	/** Token the payer sends. Defaults to 'usdc' when omitted. */
+	payerAsset?: AssetValue | (string & {});
+	/** Token the recipient receives. Defaults to 'usdc' when omitted. */
+	targetAsset?: AssetValue | (string & {});
 }
 
 /** Fee details from the API. */
@@ -126,6 +139,8 @@ export interface CreateIntentResponse extends IntentSummary {
 	sourceRecipient?: string;
 	payerChain: string;
 	targetChain: string;
+	payerAsset: AssetValue;
+	targetAsset: AssetValue;
 	paymentRequirements: PaymentRequirements;
 }
 
@@ -166,6 +181,8 @@ export interface GetIntentResponse extends IntentBase {
 	feeBreakdown?: FeeBreakdown;
 	payerChain: string;
 	targetChain: string;
+	payerAsset: AssetValue;
+	targetAsset: AssetValue;
 	receiverEmail?: string;
 	payerWallet?: string;
 	errorMessage?: string;
@@ -180,4 +197,88 @@ export interface SupportedChainsResponse {
 	chains: string[];
 	/** Chains usable as `targetChain` in CreateIntentRequest. */
 	targetChains: string[];
+}
+
+// ── Swap ──────────────────────────────────────────────────────────────────────
+
+/** Status of a registered swap intent job. */
+export const SwapJobStatus = {
+	Pending: 'PENDING',
+	Done: 'DONE',
+	Failed: 'FAILED',
+	Canceled: 'CANCELED',
+} as const;
+
+export type SwapJobStatusValue = (typeof SwapJobStatus)[keyof typeof SwapJobStatus];
+
+/** Parameters for GET /api/swap/quote. Exactly one of fromAmount or toAmount must be set. */
+export interface SwapQuoteParams {
+	/** Source chain identifier (e.g. 'base', 'bsc'). */
+	chain: string;
+	/** Token contract/mint address to swap from. */
+	inputToken: string;
+	/** Token contract/mint address to swap to. */
+	outputToken: string;
+	/** ExactIn mode: source-side amount in smallest unit. Mutually exclusive with toAmount. */
+	fromAmount?: number;
+	/** ExactOut mode: target-side amount in smallest unit. Mutually exclusive with fromAmount. */
+	toAmount?: number;
+	/** Slippage tolerance in basis points (default 50 = 0.5%). */
+	slippageBps?: number;
+	/** Destination chain. Omit or leave empty for same-chain swap. */
+	toChain?: string;
+	/** Signer wallet address. When provided, a swap transaction is included in the response. */
+	userAddress?: string;
+	/** Destination recipient address. Required for cross-family routes when userAddress is set. */
+	toUserAddress?: string;
+}
+
+/** Quote details returned inside SwapQuoteResponse. */
+export interface SwapQuoteData {
+	inputToken: string;
+	outputToken: string;
+	inputAmount: string;
+	outputAmount: string;
+	minOutputAmount: string;
+	priceImpactPct: string;
+}
+
+/** Transaction payload for the user to sign. Present only when userAddress was supplied. */
+export interface SwapTransaction {
+	/** Serialized transaction: base64 VersionedTransaction (Solana) or hex calldata (EVM). */
+	transaction: string;
+	/** Contract address to call (EVM only). */
+	to?: string;
+	/** Native token value (EVM only). */
+	value?: string;
+	/** Suggested gas limit as hex string (EVM only). */
+	gasLimit?: string;
+	/** Unix timestamp when this transaction expires. */
+	expiresAt: number;
+	/** Last valid block height (Solana only). */
+	lastValidBlockHeight?: number;
+}
+
+/** Response for GET /api/swap/quote. */
+export interface SwapQuoteResponse {
+	quote: SwapQuoteData;
+	swapTransaction?: SwapTransaction;
+}
+
+/** Request body for POST /api/swap/intents. All fields are required. */
+export interface RegisterSwapIntentRequest {
+	sourceTxHash: string;
+	fromChain: string;
+	toChain: string;
+	fromToken: string;
+	toToken: string;
+	payerAddress: string;
+	recipientAddress: string;
+	sendingTokenAmount: string;
+}
+
+/** Response for POST /api/swap/intents (201). */
+export interface RegisterSwapIntentResponse {
+	intentId: string;
+	status: SwapJobStatusValue;
 }

@@ -36,6 +36,8 @@ export const createIntentRequestSchema = zod
 		amount: zod.string().min(1, "'amount' is required"),
 		payerChain: zod.string().min(1, "'payerChain' is required"),
 		targetChain: zod.string().min(1, "'targetChain' is required"),
+		payerAsset: zod.string().optional(),
+		targetAsset: zod.string().optional(),
 	})
 	.refine(
 		(data) => {
@@ -54,6 +56,40 @@ export const createIntentRequestSchema = zod
 			message: "exactly one of 'email' or 'recipient' must be provided",
 		},
 	);
+
+// ── Swap ───────────────────────────────────────────────────────────────────
+
+export const swapQuoteParamsSchema = zod
+	.object({
+		chain: zod.string().min(1, "'chain' is required"),
+		inputToken: zod.string().min(1, "'inputToken' is required"),
+		outputToken: zod.string().min(1, "'outputToken' is required"),
+		fromAmount: zod.number().int().positive().optional(),
+		toAmount: zod.number().int().positive().optional(),
+		slippageBps: zod.number().int().nonnegative().max(500).optional(),
+		toChain: zod.string().optional(),
+		userAddress: zod.string().optional(),
+		toUserAddress: zod.string().optional(),
+	})
+	.refine(
+		(data) => {
+			const hasFrom = data.fromAmount !== undefined;
+			const hasTo = data.toAmount !== undefined;
+			return hasFrom !== hasTo;
+		},
+		{ message: "exactly one of 'fromAmount' or 'toAmount' must be provided" },
+	);
+
+export const registerSwapIntentSchema = zod.object({
+	sourceTxHash: zod.string().min(1, "'sourceTxHash' is required"),
+	fromChain: zod.string().min(1, "'fromChain' is required"),
+	toChain: zod.string().min(1, "'toChain' is required"),
+	fromToken: zod.string().min(1, "'fromToken' is required"),
+	toToken: zod.string().min(1, "'toToken' is required"),
+	payerAddress: zod.string().min(1, "'payerAddress' is required"),
+	recipientAddress: zod.string().min(1, "'recipientAddress' is required"),
+	sendingTokenAmount: zod.string().min(1, "'sendingTokenAmount' is required"),
+});
 
 // ── Method params ──────────────────────────────────────────────────────────
 

@@ -7,6 +7,7 @@ export type { PublicPayClientOptions } from './client.js';
 export { PublicPayClient } from './client.js';
 export { PayApiError, PayValidationError } from './errors.js';
 export type {
+	AssetValue,
 	ChainValue,
 	CreateIntentRequest,
 	CreateIntentResponse,
@@ -16,9 +17,16 @@ export type {
 	IntentStatusValue,
 	IntentSummary,
 	PaymentRequirements,
+	RegisterSwapIntentRequest,
+	RegisterSwapIntentResponse,
 	SourcePayment,
 	SubmitProofResponse,
 	SupportedChainsResponse,
+	SwapJobStatusValue,
+	SwapQuoteData,
+	SwapQuoteParams,
+	SwapQuoteResponse,
+	SwapTransaction,
 	TargetPayment,
 } from './types.js';
-export { Chain, IntentStatus } from './types.js';
+export { Asset, Chain, IntentStatus, SwapJobStatus } from './types.js';

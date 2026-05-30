@@ -7,17 +7,23 @@ import {
 	parseOrThrow,
 	payClientOptionsSchema,
 	publicPayClientOptionsSchema,
+	registerSwapIntentSchema,
 	settleProofSchema,
+	swapQuoteParamsSchema,
 } from './schemas.js';
 import type {
 	CreateIntentRequest,
 	CreateIntentResponse,
 	ExecuteIntentResponse,
 	GetIntentResponse,
+	RegisterSwapIntentRequest,
+	RegisterSwapIntentResponse,
 	SubmitProofResponse,
 	SupportedChainsResponse,
+	SwapQuoteParams,
+	SwapQuoteResponse,
 } from './types.js';
-import { keysToCamel } from './utils.js';
+import { keysToCamel, keysToSnake } from './utils.js';
 
 const V2_PATH_PREFIX = '/v2';
 const API_PATH_PREFIX = '/api';
@@ -154,6 +160,130 @@ export class PayClient {
 		}
 		return keysToCamel(await resp.json()) as SupportedChainsResponse;
 	}
+
+	/**
+	 * Get a swap quote (GET /api/swap/quote).
+	 * Exactly one of params.fromAmount or params.toAmount must be set.
+	 * When params.userAddress is provided, the response includes a swap transaction.
+	 */
+	async getSwapQuote(
+		params: SwapQuoteParams,
+		signal?: AbortSignal,
+	): Promise<SwapQuoteResponse> {
+		const p = parseOrThrow(swapQuoteParamsSchema, params);
+		const qs = buildSwapQuoteQuery(p);
+		const resp = await doRequest({
+			url: this.baseUrl + API_PATH_PREFIX + `/swap/quote?${qs}`,
+			method: 'GET',
+			headers: {},
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return keysToCamel(await resp.json()) as SwapQuoteResponse;
+	}
+
+	/**
+	 * Register a submitted swap transaction as a payment intent (POST /api/swap/intents).
+	 * The returned intentId can be used to track settlement status.
+	 */
+	async registerSwapIntent(
+		request: RegisterSwapIntentRequest,
+		signal?: AbortSignal,
+	): Promise<RegisterSwapIntentResponse> {
+		const req = parseOrThrow(registerSwapIntentSchema, request);
+		const resp = await doRequest({
+			url: this.baseUrl + API_PATH_PREFIX + '/swap/intents',
+			method: 'POST',
+			headers: {},
+			body: keysToSnake(req),
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 201) {
+			throw await parseError(resp);
+		}
+		return keysToCamel(await resp.json()) as RegisterSwapIntentResponse;
+	}
+
+	/**
+	 * Get supported swap tokens from LiFi (GET /api/swap/tokens).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapTokens(
+		chains?: string,
+		chainTypes?: string,
+		signal?: AbortSignal,
+	): Promise<unknown> {
+		const qs = buildDiscoveryQuery({ chains, chainTypes });
+		const resp = await doRequest({
+			url: this.baseUrl + API_PATH_PREFIX + `/swap/tokens${qs ? `?${qs}` : ''}`,
+			method: 'GET',
+			headers: {},
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
+
+	/**
+	 * Get supported swap chains from LiFi (GET /api/swap/chains).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapChains(chainTypes?: string, signal?: AbortSignal): Promise<unknown> {
+		const qs = chainTypes ? `chainTypes=${encodeURIComponent(chainTypes)}` : '';
+		const resp = await doRequest({
+			url: this.baseUrl + API_PATH_PREFIX + `/swap/chains${qs ? `?${qs}` : ''}`,
+			method: 'GET',
+			headers: {},
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
+
+	/**
+	 * Get supported swap connections from LiFi (GET /api/swap/connections).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapConnections(
+		fromChain?: string,
+		toChain?: string,
+		fromToken?: string,
+		toToken?: string,
+		signal?: AbortSignal,
+	): Promise<unknown> {
+		const qs = buildDiscoveryQuery({ fromChain, toChain, fromToken, toToken });
+		const resp = await doRequest({
+			url: this.baseUrl + API_PATH_PREFIX + `/swap/connections${qs ? `?${qs}` : ''}`,
+			method: 'GET',
+			headers: {},
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
 }
 
 // ── PublicPayClient ─────────────────────────────────────────────────────
@@ -275,4 +405,126 @@ export class PublicPayClient {
 		}
 		return keysToCamel(await resp.json()) as SupportedChainsResponse;
 	}
+
+	/**
+	 * Get a swap quote (GET /api/swap/quote).
+	 * Exactly one of params.fromAmount or params.toAmount must be set.
+	 * When params.userAddress is provided, the response includes a swap transaction.
+	 */
+	async getSwapQuote(
+		params: SwapQuoteParams,
+		signal?: AbortSignal,
+	): Promise<SwapQuoteResponse> {
+		const p = parseOrThrow(swapQuoteParamsSchema, params);
+		const qs = buildSwapQuoteQuery(p);
+		const resp = await this.do('GET', `/swap/quote?${qs}`, undefined, signal);
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return keysToCamel(await resp.json()) as SwapQuoteResponse;
+	}
+
+	/**
+	 * Register a submitted swap transaction as a payment intent (POST /api/swap/intents).
+	 * The returned intentId can be used to track settlement status.
+	 */
+	async registerSwapIntent(
+		request: RegisterSwapIntentRequest,
+		signal?: AbortSignal,
+	): Promise<RegisterSwapIntentResponse> {
+		const req = parseOrThrow(registerSwapIntentSchema, request);
+		const resp = await this.do('POST', '/swap/intents', keysToSnake(req), signal);
+		if (resp.status !== 201) {
+			throw await parseError(resp);
+		}
+		return keysToCamel(await resp.json()) as RegisterSwapIntentResponse;
+	}
+
+	/**
+	 * Get supported swap tokens from LiFi (GET /api/swap/tokens).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapTokens(
+		chains?: string,
+		chainTypes?: string,
+		signal?: AbortSignal,
+	): Promise<unknown> {
+		const qs = buildDiscoveryQuery({ chains, chainTypes });
+		const resp = await this.do(
+			'GET',
+			`/swap/tokens${qs ? `?${qs}` : ''}`,
+			undefined,
+			signal,
+		);
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
+
+	/**
+	 * Get supported swap chains from LiFi (GET /api/swap/chains).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapChains(chainTypes?: string, signal?: AbortSignal): Promise<unknown> {
+		const qs = chainTypes ? `chainTypes=${encodeURIComponent(chainTypes)}` : '';
+		const resp = await this.do(
+			'GET',
+			`/swap/chains${qs ? `?${qs}` : ''}`,
+			undefined,
+			signal,
+		);
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
+
+	/**
+	 * Get supported swap connections from LiFi (GET /api/swap/connections).
+	 * Returns raw LiFi JSON — key casing is not transformed.
+	 */
+	async getSwapConnections(
+		fromChain?: string,
+		toChain?: string,
+		fromToken?: string,
+		toToken?: string,
+		signal?: AbortSignal,
+	): Promise<unknown> {
+		const qs = buildDiscoveryQuery({ fromChain, toChain, fromToken, toToken });
+		const resp = await this.do(
+			'GET',
+			`/swap/connections${qs ? `?${qs}` : ''}`,
+			undefined,
+			signal,
+		);
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return resp.json();
+	}
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function buildSwapQuoteQuery(p: SwapQuoteParams): string {
+	const q = new URLSearchParams();
+	q.set('chain', p.chain);
+	q.set('input_token', p.inputToken);
+	q.set('output_token', p.outputToken);
+	if (p.fromAmount !== undefined) q.set('from_amount', String(p.fromAmount));
+	if (p.toAmount !== undefined) q.set('to_amount', String(p.toAmount));
+	if (p.slippageBps !== undefined) q.set('slippage_bps', String(p.slippageBps));
+	if (p.toChain) q.set('to_chain', p.toChain);
+	if (p.userAddress) q.set('user_address', p.userAddress);
+	if (p.toUserAddress) q.set('to_user_address', p.toUserAddress);
+	return q.toString();
+}
+
+function buildDiscoveryQuery(params: Record<string, string | undefined>): string {
+	const q = new URLSearchParams();
+	for (const [k, v] of Object.entries(params)) {
+		if (v) q.set(k, v);
+	}
+	return q.toString();
 }
