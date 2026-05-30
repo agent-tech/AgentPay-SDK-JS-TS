@@ -1,6 +1,6 @@
 {
   "name": "@cross402/usdc",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "description": "TypeScript client for the Agent Tech v2 payment API",
   "author": "paul-agent <paul@agent.tech>",
   "type": "module",

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.1.10...usdc-v0.2.0) (2026-05-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* 
+
+### Features
+
+* add USDT asset support and swap endpoints ([8c9025a](https://github.com/cross402/usdc-sdk-js-ts/commit/8c9025a0142a11f1c0396c3f0972883cec06f661))
+* add USDT asset support and swap endpoints ([9c4fa8e](https://github.com/cross402/usdc-sdk-js-ts/commit/9c4fa8e104d901865873ea5f84bd8d1deea9d65f))
+* align response model with multichain-to-multichain backend ([a5fca69](https://github.com/cross402/usdc-sdk-js-ts/commit/a5fca6959f572670323f87ff1754e008ab2844ab))
+* expose agentId on intent responses, add SkaleBaseSepolia, relax settlement quote on GetIntent ([8624087](https://github.com/cross402/usdc-sdk-js-ts/commit/8624087490870a42b9abf6ae2c9c7cb674b50cf3))
+* expose agentId on intents, add SkaleBaseSepolia, relax GetIntent quote fields ([4330a69](https://github.com/cross402/usdc-sdk-js-ts/commit/4330a695c548f70f82808c97f158de5c82d7c5c1))
+
 ## [0.1.10](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.1.9...usdc-v0.1.10) (2026-04-28)
 
 
