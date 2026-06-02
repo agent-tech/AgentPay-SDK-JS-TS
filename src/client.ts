@@ -15,6 +15,8 @@ import type {
 	CreateIntentRequest,
 	CreateIntentResponse,
 	ExecuteIntentResponse,
+	ExecuteSwapRequest,
+	ExecuteSwapResponse,
 	GetIntentResponse,
 	RegisterSwapIntentRequest,
 	RegisterSwapIntentResponse,
@@ -283,6 +285,31 @@ export class PayClient {
 			throw await parseError(resp);
 		}
 		return resp.json();
+	}
+
+	/**
+	 * Execute a swap via the agent's Privy-hosted wallet without a private key
+	 * (POST /api/me/swap/execute).
+	 */
+	async executeSwap(
+		request: ExecuteSwapRequest,
+		signal?: AbortSignal,
+	): Promise<ExecuteSwapResponse> {
+		const url = this.baseUrl + API_PATH_PREFIX + '/me/swap/execute';
+		const resp = await doRequest({
+			url,
+			method: 'POST',
+			headers: this.authHeaders,
+			body: request,
+			signal,
+			fetcher: this.fetchFn,
+			timeoutMs: this.timeoutMs,
+			hasCustomFetch: this.hasCustomFetch,
+		});
+		if (resp.status !== 200) {
+			throw await parseError(resp);
+		}
+		return keysToCamel(await resp.json()) as ExecuteSwapResponse;
 	}
 }
 

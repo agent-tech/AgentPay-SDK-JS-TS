@@ -282,3 +282,25 @@ export interface RegisterSwapIntentResponse {
 	intentId: string;
 	status: SwapJobStatusValue;
 }
+
+/** Body for POST /api/me/swap/execute. */
+export interface ExecuteSwapRequest {
+	chain: string;
+	fromToken: string;
+	toToken: string;
+	fromAmount: number;
+	/** Basis points; defaults to 50 (0.5%) if omitted. */
+	slippageBps?: number;
+	/** Destination chain; defaults to chain (same-chain swap) if omitted. */
+	toChain?: string;
+}
+
+/** Response for POST /api/me/swap/execute (200). */
+export interface ExecuteSwapResponse {
+	txHash: string;
+	chain: string;
+	fromToken: string;
+	toToken: string;
+	fromAmount: string;
+	estimatedOutput: string;
+}
