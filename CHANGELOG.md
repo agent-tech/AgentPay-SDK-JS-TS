@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.0](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.2.1...usdc-v0.3.0) (2026-06-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* 
+
+### Features
+
+* add executeSwap for agent-initiated swaps via Privy ([8640308](https://github.com/cross402/usdc-sdk-js-ts/commit/8640308615bd5e5441eadd7c091fb0b45508b743))
+* add executeSwap method for POST /api/me/swap/execute ([11773b1](https://github.com/cross402/usdc-sdk-js-ts/commit/11773b1dd12609c83921c2dd8620efa1bc2e6fae))
+* add targetChain support to CreateIntentRequest ([099224c](https://github.com/cross402/usdc-sdk-js-ts/commit/099224c212da059d6327d38e9e49ac9bfd3e3edc))
+* add targetChain support to CreateIntentRequest ([f85cae9](https://github.com/cross402/usdc-sdk-js-ts/commit/f85cae930bc4f89c34f13bdeb92caf376bd157b9))
+* add USDT asset support and swap endpoints ([8c9025a](https://github.com/cross402/usdc-sdk-js-ts/commit/8c9025a0142a11f1c0396c3f0972883cec06f661))
+* add USDT asset support and swap endpoints ([9c4fa8e](https://github.com/cross402/usdc-sdk-js-ts/commit/9c4fa8e104d901865873ea5f84bd8d1deea9d65f))
+* align response model with multichain-to-multichain backend ([a5fca69](https://github.com/cross402/usdc-sdk-js-ts/commit/a5fca6959f572670323f87ff1754e008ab2844ab))
+* expose agentId on intent responses, add SkaleBaseSepolia, relax settlement quote on GetIntent ([8624087](https://github.com/cross402/usdc-sdk-js-ts/commit/8624087490870a42b9abf6ae2c9c7cb674b50cf3))
+* expose agentId on intents, add SkaleBaseSepolia, relax GetIntent quote fields ([4330a69](https://github.com/cross402/usdc-sdk-js-ts/commit/4330a695c548f70f82808c97f158de5c82d7c5c1))
+
+
+### Bug Fixes
+
+* build not export correctly ([4b6cd06](https://github.com/cross402/usdc-sdk-js-ts/commit/4b6cd0677223e8b5bb2876caf86a8c303452059f))
+* build not export correctly ([f8cf852](https://github.com/cross402/usdc-sdk-js-ts/commit/f8cf85227d7d22320b13a3f0e42f5654846d4e71))
+* replace --packages external with explicit --external flags in build ([101c1e4](https://github.com/cross402/usdc-sdk-js-ts/commit/101c1e489516879f0e8c2f85f0edff6acb87b8f2))
+* replace --packages external with explicit --external flags in build ([af33d68](https://github.com/cross402/usdc-sdk-js-ts/commit/af33d681fa08b54e10e317ca7c97ffc6fbd7927d))
+
+
+### Code Refactoring
+
+* make targetChain required in CreateIntentRequest ([cb34e89](https://github.com/cross402/usdc-sdk-js-ts/commit/cb34e899b9ea2b29b59ef77688dbb979afffa5ac))
+
 ## [0.2.1](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.2.0...usdc-v0.2.1) (2026-06-02)
 
 
