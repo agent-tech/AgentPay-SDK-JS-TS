@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.2.0...usdc-v0.2.1) (2026-06-02)
+
+
+### Features
+
+* add executeSwap for agent-initiated swaps via Privy hosted wallet
+
 ## [0.2.0](https://github.com/cross402/usdc-sdk-js-ts/compare/usdc-v0.1.10...usdc-v0.2.0) (2026-05-30)
 
 
