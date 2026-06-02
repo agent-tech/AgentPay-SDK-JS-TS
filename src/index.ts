@@ -10,6 +10,8 @@ export type {
 	CreateIntentRequest,
 	CreateIntentResponse,
 	ExecuteIntentResponse,
+	ExecuteSwapRequest,
+	ExecuteSwapResponse,
 	FeeBreakdown,
 	GetIntentResponse,
 	IntentBase,
